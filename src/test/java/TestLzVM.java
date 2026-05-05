@@ -28,7 +28,7 @@ public class TestLzVM
 		
 		double x = 5;
 		
-		double realValue = Math.atan2(360, 360 / (x * 2) * 15);
+		double realValue = LzFMath.cosd(LzFMath.sind(Math.atan2(360, 360 / (x * 2) * 15)));
 		int[] program = new int[] {
 				LzOpcodes.SCONST, 0,
 				
@@ -48,6 +48,8 @@ public class TestLzVM
 				LzOpcodes.WRITE, 0,
 				
 				LzOpcodes.READ, 0,
+				LzOpcodes.FSIN,
+				LzOpcodes.FCOS,
 				LzOpcodes.RETURN
 		};
 		

@@ -17,12 +17,14 @@ public class LzJvmCompiler
 	public static final String LzVarOp = dev.zeith.lzvm.op.LzVarOp.class.getName().replace('.', '/');
 	public static final String LzCallOp = dev.zeith.lzvm.op.LzCallOp.class.getName().replace('.', '/');
 	public static final String LzGenerated = Generated.class.getName().replace('.', '/');
+	public static final String LzFMath = LzFMath.class.getName().replace('.', '/');
 	
 	public static final String L_LzExpression = "L" + LzExpression + ";";
 	public static final String L_LzVariableStore = "L" + LzVariableStore + ";";
 	public static final String L_LzVarOp = "L" + LzVarOp + ";";
 	public static final String L_LzCallOp = "L" + LzCallOp + ";";
 	public static final String L_LzGenerated = "L" + LzGenerated + ";";
+	public static final String L_LzFMath = "L" + LzFMath + ";";
 	
 	public static byte[] compile(String name, LzProgram program, int argCount)
 	{
@@ -278,6 +280,28 @@ public class LzJvmCompiler
 				{
 					int constIdx = code[++i];
 					insn.add(new LdcInsnNode(body.sConstTable[constIdx]));
+				}
+				break;
+				
+				case LzOpcodes.FSIN:
+				{
+					insn.add(new MethodInsnNode(
+							INVOKESTATIC,
+							LzFMath,
+							"sind",
+							"(D)D"
+					));
+				}
+				break;
+				
+				case LzOpcodes.FCOS:
+				{
+					insn.add(new MethodInsnNode(
+							INVOKESTATIC,
+							LzFMath,
+							"cosd",
+							"(D)D"
+					));
 				}
 				break;
 				

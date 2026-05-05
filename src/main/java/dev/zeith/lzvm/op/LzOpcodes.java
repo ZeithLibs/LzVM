@@ -21,8 +21,10 @@ public interface LzOpcodes
 	int LABEL = 11; // Marks a label that the GOTO insn can jump to. All labels get their starting at 0.
 	int JUMP = 12; // Jumps to the label by the next insn index. (the index 0 always points to the first label)
 	int SCONST = 13; // Load string value from const table onto the stack.
+	int FSIN = 14;
+	int FCOS = 15;
 	
-	int I_LAST = SCONST;
+	int I_LAST = FCOS;
 	int I_COUNT = I_LAST + 1;
 	
 	int[] EXTRA_SHIFTS = OpCodeIndexer.computeExtraShifts();

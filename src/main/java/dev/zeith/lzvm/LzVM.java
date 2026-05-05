@@ -1,6 +1,7 @@
 package dev.zeith.lzvm;
 
 import dev.zeith.lzvm.exception.*;
+import dev.zeith.lzvm.jvm.LzFMath;
 import dev.zeith.lzvm.op.*;
 import dev.zeith.lzvm.program.*;
 
@@ -101,6 +102,18 @@ public class LzVM
 					break;
 					case LzOpcodes.SCONST:
 						stack[++ptr] = sConsts[insn[++i]]; break;
+					case LzOpcodes.FSIN:
+					{
+						double onStack = coerce(stack[ptr--]);
+						stack[++ptr] = LzFMath.sind(onStack);
+						break;
+					}
+					case LzOpcodes.FCOS:
+					{
+						double onStack = coerce(stack[ptr--]);
+						stack[++ptr] = LzFMath.cosd(onStack);
+						break;
+					}
 					default:
 						break;
 				}
@@ -135,7 +148,7 @@ public class LzVM
 	@Override
 	public LzCallOp findCall(String name, String descriptor)
 	{
-		return callRegister.get(name + descriptor);
+		return callRegister.getOrDefault(name + descriptor, LzCallOp.NO_OP);
 	}
 	
 	public LzVarOp findVar(String insn)
