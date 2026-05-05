@@ -1,17 +1,50 @@
 package dev.zeith.lzvm;
 
 import dev.zeith.lzvm.exception.*;
-import dev.zeith.lzvm.jvm.LzFMath;
+import dev.zeith.lzvm.jvm.LzMath;
 import dev.zeith.lzvm.op.*;
 import dev.zeith.lzvm.program.*;
 
+import java.lang.reflect.Method;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class LzVM
 		implements LzVariableStore
 {
 	protected final Map<String, LzCallOp> callRegister = new HashMap<>();
 	protected final Map<String, LzVarOp> varRegister = new HashMap<>();
+	
+	protected final ClassLoader loader;
+	protected final Map<String, Map<LzCallInsn, Optional<Method>>> jvmCache = new ConcurrentHashMap<>();
+	
+	public LzVM(ClassLoader loader)
+	{
+		this.loader = loader;
+	}
+	
+	public LzVM()
+	{
+		this(Thread.currentThread().getContextClassLoader());
+	}
+	
+	protected Method findMethod(String owner, LzCallInsn call)
+	{
+		Map<LzCallInsn, Optional<Method>> map = jvmCache.computeIfAbsent(owner, k -> new ConcurrentHashMap<>());
+		return map.computeIfAbsent(call, c ->
+				{
+					try
+					{
+						Class<?> cls = loader.loadClass(owner.replace('/', '.'));
+						Class<?>[] params = ArgType.toJavaArgs(call.argTypes);
+						return Optional.of(cls.getDeclaredMethod(call.name, params));
+					} catch(ReflectiveOperationException e)
+					{
+						return Optional.empty();
+					}
+				}
+		).orElse(null);
+	}
 	
 	public LzVM registerCall(LzCallInsn name, LzCallOp op)
 	{
@@ -59,10 +92,31 @@ public class LzVM
 						return ptr < 0 ? 0.0 : coerce(stack[ptr]);
 					case LzOpcodes.CONST:
 						stack[++ptr] = consts[insn[++i]]; break;
+					case LzOpcodes.SCONST:
+						stack[++ptr] = sConsts[insn[++i]]; break;
 					case LzOpcodes.LOAD:
 						stack[++ptr] = locals[insn[++i]]; break;
 					case LzOpcodes.STORE:
 						locals[insn[++i]] = stack[ptr--]; break;
+					
+					case LzOpcodes.JCALL:
+					{
+						String owner = vinsn = sConsts[insn[++i]];
+						cinsn = callTable[insn[++i]];
+						Method method = findMethod(owner, cinsn);
+						Object[] capturedArgs = new Object[cinsn.argCount];
+						expect = capturedArgs.length;
+						for(int j = capturedArgs.length - 1; j >= 0; --j) capturedArgs[j] = stack[ptr--];
+						try
+						{
+							stack[++ptr] = method.invoke(null, capturedArgs);
+						} catch(ReflectiveOperationException e)
+						{
+							throw new LzVMCallNotFoundException(e);
+						}
+					}
+					break;
+					
 					case LzOpcodes.CALL:
 					{
 						int callIdx = insn[++i];
@@ -70,14 +124,22 @@ public class LzVM
 						LzCallOp call = findCallByName(cinsn);
 						Object[] capturedArgs = new Object[cinsn.argCount];
 						expect = capturedArgs.length;
-						for(int j = 0; j < capturedArgs.length; j++) capturedArgs[j] = stack[ptr--];
+						for(int j = capturedArgs.length - 1; j >= 0; --j) capturedArgs[j] = stack[ptr--];
 						stack[++ptr] = call.call(capturedArgs);
 					}
 					break;
+					
 					case LzOpcodes.ADD:
 					case LzOpcodes.SUB:
 					case LzOpcodes.MUL:
 					case LzOpcodes.DIV:
+					case LzOpcodes.EQUALS:
+					case LzOpcodes.NOT_EQUALS:
+					case LzOpcodes.GREATER_THAN:
+					case LzOpcodes.GREATER_EQ_THAN:
+					case LzOpcodes.LESS_THAN:
+					case LzOpcodes.LESS_EQ_THAN:
+					case LzOpcodes.COALESCE:
 					{
 						expect = 2;
 						double right = coerce(stack[ptr--]);
@@ -85,6 +147,19 @@ public class LzVM
 						stack[++ptr] = LzBinaryOp.byOpcode(state).operate(left, right);
 					}
 					break;
+					case LzOpcodes.FSIN:
+					{
+						double onStack = coerce(stack[ptr--]);
+						stack[++ptr] = LzMath.sind(onStack);
+					}
+					break;
+					case LzOpcodes.FCOS:
+					{
+						double onStack = coerce(stack[ptr--]);
+						stack[++ptr] = LzMath.cosd(onStack);
+					}
+					break;
+					
 					case LzOpcodes.READ:
 					{
 						int varIdx = insn[++i];
@@ -92,6 +167,7 @@ public class LzVM
 						stack[++ptr] = findVar(vinsn).get();
 					}
 					break;
+					
 					case LzOpcodes.WRITE:
 					{
 						expect = 1;
@@ -100,20 +176,7 @@ public class LzVM
 						findVar(vinsn).set(coerce(stack[ptr--]));
 					}
 					break;
-					case LzOpcodes.SCONST:
-						stack[++ptr] = sConsts[insn[++i]]; break;
-					case LzOpcodes.FSIN:
-					{
-						double onStack = coerce(stack[ptr--]);
-						stack[++ptr] = LzFMath.sind(onStack);
-						break;
-					}
-					case LzOpcodes.FCOS:
-					{
-						double onStack = coerce(stack[ptr--]);
-						stack[++ptr] = LzFMath.cosd(onStack);
-						break;
-					}
+					
 					default:
 						break;
 				}
@@ -127,6 +190,8 @@ public class LzVM
 		{
 			if(cinsn != null && state == LzOpcodes.CALL)
 				throw new LzVMCallNotFoundException("Could not find call " + cinsn.name + cinsn.descriptor + " with " + cinsn.argCount + " arguments.", e);
+			if(cinsn != null && state == LzOpcodes.JCALL)
+				throw new LzVMCallNotFoundException("Could not find jvm call " + vinsn.replace('/', '.') + "." + cinsn.name + cinsn.descriptor + " with " + cinsn.argCount + " arguments.", e);
 			if(vinsn != null && (state == LzOpcodes.READ || state == LzOpcodes.WRITE))
 				throw new LzVMCallNotFoundException("Could not find var " + vinsn, e);
 			throw e;

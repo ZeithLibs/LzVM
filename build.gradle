@@ -2,8 +2,29 @@ plugins {
     id 'java'
 }
 
-group = 'dev.zeith.libs'
-version = '1.0-SNAPSHOT'
+group = 'dev.zeith.lzvm'
+version = lzVmVersion
+
+subprojects {
+    apply plugin: 'java'
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(javaVersion)
+        }
+    }
+
+    dependencies {
+        compileOnly "org.projectlombok:lombok:$lombok"
+        annotationProcessor "org.projectlombok:lombok:$lombok"
+    }
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(javaVersion)
+    }
+}
 
 repositories {
     mavenCentral()

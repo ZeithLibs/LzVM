@@ -1,24 +1,41 @@
 package dev.zeith.lzvm.program;
 
-import lombok.*;
+import lombok.EqualsAndHashCode;
 
 @EqualsAndHashCode
-@AllArgsConstructor
 public class LzCallInsn
 {
 	public final String name;
-	public final ArgType[] stackTypes; // These are reverse, used for JVM compilation.
+	public final ArgType[] argTypes; // These are reverse, used for JVM compilation.
 	public final int argCount;
 	
 	public final String descriptor;
+	public final String jvmDescriptor;
 	
-	public LzCallInsn(String name, ArgType... argTypes)
+	public final ArgType returnType;
+	
+	public LzCallInsn(String name, ArgType returnType, ArgType... argTypes)
 	{
 		this.name = name;
-		int argCount = argTypes.length;
-		this.argCount = argCount;
-		this.stackTypes = new ArgType[argCount];
-		for(int i = 0; i < argCount; i++) this.stackTypes[i] = argTypes[argCount - 1 - i];
-		this.descriptor = ArgType.descriptor(argTypes);
+		this.returnType = returnType;
+		this.argTypes = argTypes;
+		this.argCount = argTypes.length;
+		this.descriptor = ArgType.descriptor(returnType, argTypes);
+		this.jvmDescriptor = ArgType.jvmDescriptor(returnType, argTypes);
+	}
+	
+	public static LzCallInsn ofDbl(String name, ArgType... argTypes)
+	{
+		return of(name, ArgType.DOUBLE, argTypes);
+	}
+	
+	public static LzCallInsn ofStr(String name, ArgType... argTypes)
+	{
+		return of(name, ArgType.STRING, argTypes);
+	}
+	
+	public static LzCallInsn of(String name, ArgType returnType, ArgType... argTypes)
+	{
+		return new LzCallInsn(name, returnType, argTypes);
 	}
 }

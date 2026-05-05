@@ -54,6 +54,8 @@ public class LzProgramBody
 				return dConstTable[value];
 			case LzOpcodes.CALL:
 				return callTable[value];
+			case LzOpcodes.JCALL:
+				return ordinal == 1 ? callTable[value] : sConstTable[value];
 			case LzOpcodes.READ:
 			case LzOpcodes.WRITE:
 				return varTable[value];
@@ -83,12 +85,11 @@ public class LzProgramBody
 					++labelCount;
 					break;
 				case LzOpcodes.LOAD:
-					maxLocal = Math.max(maxLocal, insn[i]);
-					break;
 				case LzOpcodes.STORE:
 					maxLocal = Math.max(maxLocal, insn[i]);
 					break;
 				case LzOpcodes.CALL:
+				case LzOpcodes.JCALL:
 				{
 					int callIdx = insn[i];
 					LzCallInsn cinsn = callTable[callIdx];

@@ -5,16 +5,32 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum ArgType
 {
-	DOUBLE("d"),
-	STRING("s"),
+	DOUBLE("D", "D", double.class),
+	STRING("S", "Ljava/lang/String;", String.class),
 	;
 	
-	public final String desc;
+	public final String desc, jvmDesc;
+	public final Class<?> javaType;
 	
-	public static String descriptor(ArgType... argTypes)
+	public static Class<?>[] toJavaArgs(ArgType... argTypes)
+	{
+		Class<?>[] javaArgs = new Class<?>[argTypes.length];
+		for(int i = 0; i < argTypes.length; i++)
+			javaArgs[i] = argTypes[i].javaType;
+		return javaArgs;
+	}
+	
+	public static String descriptor(ArgType returnType, ArgType... argTypes)
 	{
 		StringBuilder sb = new StringBuilder("(");
-		for(ArgType at : argTypes) sb.append("L").append(at.desc).append(";");
-		return sb.append(")").append(ArgType.DOUBLE.desc).toString();
+		for(ArgType at : argTypes) sb.append(at.desc);
+		return sb.append(")").append(returnType.desc).toString();
+	}
+	
+	public static String jvmDescriptor(ArgType returnType, ArgType... argTypes)
+	{
+		StringBuilder sb = new StringBuilder("(");
+		for(ArgType at : argTypes) sb.append(at.jvmDesc);
+		return sb.append(")").append(returnType.jvmDesc).toString();
 	}
 }

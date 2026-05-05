@@ -6,7 +6,7 @@ import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.tree.*;
 
 import java.util.*;
-import java.util.function.Function;
+import java.util.function.*;
 
 import static org.objectweb.asm.Opcodes.*;
 
@@ -17,14 +17,21 @@ public class LzJvmCompiler
 	public static final String LzVarOp = dev.zeith.lzvm.op.LzVarOp.class.getName().replace('.', '/');
 	public static final String LzCallOp = dev.zeith.lzvm.op.LzCallOp.class.getName().replace('.', '/');
 	public static final String LzGenerated = Generated.class.getName().replace('.', '/');
-	public static final String LzFMath = LzFMath.class.getName().replace('.', '/');
+	public static final String LzFMath = LzMath.class.getName().replace('.', '/');
 	
 	public static final String L_LzExpression = "L" + LzExpression + ";";
 	public static final String L_LzVariableStore = "L" + LzVariableStore + ";";
 	public static final String L_LzVarOp = "L" + LzVarOp + ";";
 	public static final String L_LzCallOp = "L" + LzCallOp + ";";
 	public static final String L_LzGenerated = "L" + LzGenerated + ";";
-	public static final String L_LzFMath = "L" + LzFMath + ";";
+	
+	static boolean useArray = false;
+	
+	@SuppressWarnings("deprecation") // methodCall is not actually deprecated,
+	private static MethodInsnNode mCall(final int opcode, final String owner, final String name, final String descriptor)
+	{
+		return new MethodInsnNode(opcode, owner, name, descriptor);
+	}
 	
 	public static byte[] compile(String name, LzProgram program, int argCount)
 	{
@@ -40,6 +47,23 @@ public class LzJvmCompiler
 		final Set<String> usedFieldNames = new HashSet<>();
 		final Set<String> usedMethodNames = new HashSet<>();
 		
+		usedFieldNames.add("isFactory");
+		
+		usedMethodNames.add("toString");
+		usedMethodNames.add("wait");
+		usedMethodNames.add("notify");
+		usedMethodNames.add("notifyAll");
+		usedMethodNames.add("hashCode");
+		usedMethodNames.add("getClass");
+		usedMethodNames.add("equals");
+		usedMethodNames.add("clone");
+		usedMethodNames.add("finalize");
+		
+		usedMethodNames.add("instantiate");
+		usedMethodNames.add("get");
+		
+		final int startingFieldCount = usedFieldNames.size();
+		
 		final FieldNode isFactory = new FieldNode(ACC_PRIVATE | ACC_FINAL, "isFactory", "Z", null, null);
 		cn.fields.add(isFactory);
 		
@@ -48,7 +72,7 @@ public class LzJvmCompiler
 		InsnList cinsn = ctor.instructions;
 		{
 			cinsn.add(new VarInsnNode(ALOAD, 0));
-			cinsn.add(new MethodInsnNode(INVOKESPECIAL, cn.superName, "<init>", "()V", false));
+			cinsn.add(mCall(INVOKESPECIAL, cn.superName, "<init>", "()V"));
 			cinsn.add(new VarInsnNode(ALOAD, 0));
 			cinsn.add(new InsnNode(ICONST_0));
 			cinsn.add(new FieldInsnNode(PUTFIELD, cn.name, isFactory.name, isFactory.desc));
@@ -62,7 +86,7 @@ public class LzJvmCompiler
 		cinsn = fctor.instructions;
 		{
 			cinsn.add(new VarInsnNode(ALOAD, 0));
-			cinsn.add(new MethodInsnNode(INVOKESPECIAL, cn.superName, "<init>", "()V", false));
+			cinsn.add(mCall(INVOKESPECIAL, cn.superName, "<init>", "()V"));
 			cinsn.add(new VarInsnNode(ALOAD, 0));
 			cinsn.add(new InsnNode(ICONST_1));
 			cinsn.add(new FieldInsnNode(PUTFIELD, cn.name, isFactory.name, isFactory.desc));
@@ -75,6 +99,7 @@ public class LzJvmCompiler
 		final Function<LzCallInsn, FieldNode> callGetter = getCallFieldHelper(cn, usedFieldNames, ctor);
 		final Map<LzCallInsn, MethodNode> registeredCalls = new HashMap<>(body.callTable.length); // preallocate all calls
 		final String disassembly = body.disassemble(true);
+		cn.visibleAnnotations = generated(disassembly, Collections.emptyMap());
 		
 		//<editor-fold desc="toString()">
 		final MethodNode toString = new MethodNode(ACC_PUBLIC, "toString", "()Ljava/lang/String;", null, null);
@@ -95,42 +120,21 @@ public class LzJvmCompiler
 			cinsn.add(new InsnNode(ARETURN));
 		}
 		cn.methods.add(toString);
-		usedMethodNames.add("toString");
-		//</editor-fold>
-		
-		//<editor-fold desc="instantiate(LzVariableStore)LzExpression">
-		final MethodNode instantiate = new MethodNode(ACC_PUBLIC, "instantiate", "(" + L_LzVariableStore + ")" + L_LzExpression, null, null);
-		instantiate.visibleAnnotations = generated(disassembly, Collections.emptyMap());
-		cinsn = instantiate.instructions;
-		{
-			cinsn.add(new TypeInsnNode(NEW, cn.name)); // new expression instance
-			cinsn.add(new InsnNode(DUP));
-			cinsn.add(new VarInsnNode(ALOAD, 1)); // load LzVariableStore
-			cinsn.add(new MethodInsnNode(
-					INVOKESPECIAL,
-					cn.name,
-					ctor.name,
-					ctor.desc,
-					false
-			));
-			cinsn.add(new InsnNode(ARETURN));
-		}
-		cn.methods.add(instantiate);
-		usedMethodNames.add("instantiate");
 		//</editor-fold>
 		
 		//<editor-fold desc="get([D)D">
 		MethodNode m = new MethodNode(ACC_PUBLIC, "get", "([D)D", null, null);
 		cn.methods.add(m);
-		usedMethodNames.add("get");
-		m.visibleAnnotations = generated(disassembly, Collections.emptyMap());
 		
 		InsnList insn = m.instructions;
 		
 		// create locals array
-		pushInt(insn, program.info.maxLocals); // some temp space
-		insn.add(new IntInsnNode(NEWARRAY, T_DOUBLE));
-		insn.add(new VarInsnNode(ASTORE, 2)); // locals at slot 2
+		if(useArray)
+		{
+			pushInt(insn, program.info.maxLocals); // some temp space
+			insn.add(new IntInsnNode(NEWARRAY, T_DOUBLE));
+			insn.add(new VarInsnNode(ASTORE, 2)); // locals at slot 2
+		}
 		
 		int[] code = body.insnList;
 		
@@ -145,6 +149,8 @@ public class LzJvmCompiler
 		}
 		labelIndex = 0;
 		
+		int stackPos = 0;
+		
 		// --- Emit instructions ---
 		for(int i = 0; i < code.length; i++)
 		{
@@ -154,6 +160,8 @@ public class LzJvmCompiler
 			{
 				case LzOpcodes.RETURN:
 				{
+					// If nothing is on the stack, replicate LzVM's behavior of returning zero.
+					if(stackPos <= 0) insn.add(new LdcInsnNode(0.0));
 					insn.add(new InsnNode(DRETURN));
 				}
 				break;
@@ -163,6 +171,15 @@ public class LzJvmCompiler
 					int idx = code[++i];
 					double val = body.dConstTable[idx];
 					insn.add(new LdcInsnNode(val));
+					++stackPos;
+				}
+				break;
+				
+				case LzOpcodes.SCONST:
+				{
+					int constIdx = code[++i];
+					insn.add(new LdcInsnNode(body.sConstTable[constIdx]));
+					++stackPos;
 				}
 				break;
 				
@@ -170,83 +187,52 @@ public class LzJvmCompiler
 				{
 					int idx = code[++i];
 					
-					insn.add(new VarInsnNode(ALOAD, idx < argCount ? 1 : 2));
-					pushInt(insn, idx);
-					insn.add(new InsnNode(DALOAD));
+					if(useArray || idx < argCount)
+					{
+						insn.add(new VarInsnNode(ALOAD, idx < argCount ? 1 : 2));
+						pushInt(insn, idx);
+						insn.add(new InsnNode(DALOAD));
+					} else
+					{
+						insn.add(new VarInsnNode(DLOAD, 2 + idx));
+					}
+					
+					++stackPos;
 				}
 				break;
 				
 				case LzOpcodes.STORE:
 				{
 					int idx = code[++i];
-					insn.add(new VarInsnNode(DSTORE, 3));
-					insn.add(new VarInsnNode(ALOAD, idx < argCount ? 1 : 2));
-					pushInt(insn, idx);
-					insn.add(new VarInsnNode(DLOAD, 3));
-					insn.add(new InsnNode(DASTORE));
+					if(useArray || idx < argCount)
+					{
+						insn.add(new VarInsnNode(DSTORE, 3));
+						insn.add(new VarInsnNode(ALOAD, idx < argCount ? 1 : 2));
+						pushInt(insn, idx);
+						insn.add(new VarInsnNode(DLOAD, 3));
+						insn.add(new InsnNode(DASTORE));
+					} else
+					{
+						insn.add(new VarInsnNode(DSTORE, 2 + idx));
+					}
+					--stackPos;
 				}
 				break;
 				
-				case LzOpcodes.ADD:
-					insn.add(new InsnNode(DADD)); break;
-				case LzOpcodes.SUB:
-					insn.add(new InsnNode(DSUB)); break;
-				case LzOpcodes.MUL:
-					insn.add(new InsnNode(DMUL)); break;
-				case LzOpcodes.DIV:
-					insn.add(new InsnNode(DDIV)); break;
-				
-				case LzOpcodes.READ:
+				case LzOpcodes.JCALL:
 				{
-					int idx = code[++i];
-					String nameStr = body.varTable[idx];
-					FieldNode varHolder = varGetter.apply(nameStr);
+					String owner = body.sConstTable[code[++i]];
+					LzCallInsn call = body.callTable[code[++i]];
 					
-					insn.add(new VarInsnNode(ALOAD, 0));
-					insn.add(new FieldInsnNode(GETFIELD, cn.name, varHolder.name, varHolder.desc));
-					insn.add(new MethodInsnNode(
-							INVOKEINTERFACE,
-							LzVarOp,
-							"get",
-							"()D",
-							true
+					insn.add(mCall(
+							INVOKESTATIC,
+							owner.replace('.', '/'),
+							call.name,
+							call.jvmDescriptor
 					));
-				}
-				break;
-				
-				case LzOpcodes.WRITE:
-				{
-					int idx = code[++i];
-					String nameStr = body.varTable[idx];
-					FieldNode varHolder = varGetter.apply(nameStr);
 					
-					// Store into temp variable
-					insn.add(new VarInsnNode(DSTORE, 3));
-					
-					insn.add(new VarInsnNode(ALOAD, 0));
-					insn.add(new FieldInsnNode(GETFIELD, cn.name, varHolder.name, varHolder.desc));
-					insn.add(new VarInsnNode(DLOAD, 3));
-					
-					insn.add(new MethodInsnNode(
-							INVOKEINTERFACE,
-							LzVarOp,
-							"set",
-							"(D)V",
-							true
-					));
-				}
-				break;
-				
-				case LzOpcodes.LABEL:
-				{
-					insn.add(labelMap.get(labelIndex++));
-				}
-				break;
-				
-				case LzOpcodes.JUMP:
-				{
-					int target = code[++i];
-					insn.add(new JumpInsnNode(GOTO, labelMap.get(target)));
+					stackPos -= call.argCount;
+					++stackPos;
 				}
 				break;
 				
@@ -266,42 +252,98 @@ public class LzJvmCompiler
 					insn.add(new VarInsnNode(ALOAD, 0));
 					
 					// Call the method
-					insn.add(new MethodInsnNode(
+					insn.add(mCall(
 							INVOKESTATIC,
 							cn.name,
 							method.name,
-							method.desc,
-							false
+							method.desc
 					));
+					
+					stackPos -= call.argCount;
+					++stackPos;
 				}
 				break;
 				
-				case LzOpcodes.SCONST:
-				{
-					int constIdx = code[++i];
-					insn.add(new LdcInsnNode(body.sConstTable[constIdx]));
-				}
-				break;
-				
+				case LzOpcodes.ADD:
+					insn.add(new InsnNode(DADD)); --stackPos; break;
+				case LzOpcodes.SUB:
+					insn.add(new InsnNode(DSUB)); --stackPos; break;
+				case LzOpcodes.MUL:
+					insn.add(new InsnNode(DMUL)); --stackPos; break;
+				case LzOpcodes.DIV:
+					insn.add(new InsnNode(DDIV)); --stackPos; break;
+				case LzOpcodes.EQUALS:
+					insn.add(mCall(INVOKESTATIC, LzFMath, "eqd", "(DD)D")); --stackPos; break;
+				case LzOpcodes.NOT_EQUALS:
+					insn.add(mCall(INVOKESTATIC, LzFMath, "neqd", "(DD)D")); --stackPos; break;
+				case LzOpcodes.GREATER_THAN:
+					insn.add(mCall(INVOKESTATIC, LzFMath, "gtd", "(DD)D")); --stackPos; break;
+				case LzOpcodes.GREATER_EQ_THAN:
+					insn.add(mCall(INVOKESTATIC, LzFMath, "getd", "(DD)D")); --stackPos; break;
+				case LzOpcodes.LESS_THAN:
+					insn.add(mCall(INVOKESTATIC, LzFMath, "ltd", "(DD)D")); --stackPos; break;
+				case LzOpcodes.LESS_EQ_THAN:
+					insn.add(mCall(INVOKESTATIC, LzFMath, "letd", "(DD)D")); --stackPos; break;
+				case LzOpcodes.COALESCE:
+					insn.add(mCall(INVOKESTATIC, LzFMath, "coalesce", "(DD)D")); --stackPos; break;
 				case LzOpcodes.FSIN:
+					insn.add(mCall(INVOKESTATIC, LzFMath, "sind", "(D)D")); break;
+				case LzOpcodes.FCOS:
+					insn.add(mCall(INVOKESTATIC, LzFMath, "cosd", "(D)D")); break;
+				
+				case LzOpcodes.READ:
 				{
-					insn.add(new MethodInsnNode(
-							INVOKESTATIC,
-							LzFMath,
-							"sind",
-							"(D)D"
+					int idx = code[++i];
+					String nameStr = body.varTable[idx];
+					FieldNode varHolder = varGetter.apply(nameStr);
+					
+					insn.add(new VarInsnNode(ALOAD, 0));
+					insn.add(new FieldInsnNode(GETFIELD, cn.name, varHolder.name, varHolder.desc));
+					insn.add(mCall(
+							INVOKEINTERFACE,
+							LzVarOp,
+							"get",
+							"()D"
 					));
+					
+					++stackPos;
 				}
 				break;
 				
-				case LzOpcodes.FCOS:
+				case LzOpcodes.WRITE:
 				{
-					insn.add(new MethodInsnNode(
-							INVOKESTATIC,
-							LzFMath,
-							"cosd",
-							"(D)D"
+					int idx = code[++i];
+					String nameStr = body.varTable[idx];
+					FieldNode varHolder = varGetter.apply(nameStr);
+					
+					// Store into temp variable
+					insn.add(new VarInsnNode(DSTORE, 3));
+					
+					insn.add(new VarInsnNode(ALOAD, 0));
+					insn.add(new FieldInsnNode(GETFIELD, cn.name, varHolder.name, varHolder.desc));
+					insn.add(new VarInsnNode(DLOAD, 3));
+					
+					insn.add(mCall(
+							INVOKEINTERFACE,
+							LzVarOp,
+							"set",
+							"(D)V"
 					));
+					
+					--stackPos;
+				}
+				break;
+				
+				case LzOpcodes.LABEL:
+				{
+					insn.add(labelMap.get(labelIndex++));
+				}
+				break;
+				
+				case LzOpcodes.JUMP:
+				{
+					int target = code[++i];
+					insn.add(new JumpInsnNode(GOTO, labelMap.get(target)));
 				}
 				break;
 				
@@ -309,11 +351,84 @@ public class LzJvmCompiler
 					throw new IllegalStateException("Unknown opcode: " + op);
 			}
 		}
+		
+		// At the end, always return 0
+		insn.add(new LdcInsnNode(0.0));
+		insn.add(new InsnNode(DRETURN));
+		//</editor-fold>
+		
+		//<editor-fold desc="instantiate(LzVariableStore)LzExpression">
+		final MethodNode instantiate = new MethodNode(ACC_PUBLIC, "instantiate", "(" + L_LzVariableStore + ")" + L_LzExpression, null, null);
+		cinsn = instantiate.instructions;
+		if(usedFieldNames.size() == startingFieldCount)
+		{
+			FieldNode instanceNode = new FieldNode(ACC_PRIVATE, "instance", L_LzExpression, null, null);
+			cn.fields.add(instanceNode);
+			
+			// no fields were added during generation, return a cached instance
+			cinsn.add(new VarInsnNode(ALOAD, 0));
+			cinsn.add(new FieldInsnNode(GETFIELD, cn.name, instanceNode.name, instanceNode.desc));
+			cinsn.add(new InsnNode(ARETURN));
+			
+			// Modify factory constructor to initialize instance field
+			{
+				cinsn = new InsnList();
+				cinsn.add(new VarInsnNode(ALOAD, 0));
+				cinsn.add(new TypeInsnNode(NEW, cn.name));
+				cinsn.add(new InsnNode(DUP));
+				cinsn.add(new InsnNode(ACONST_NULL));
+				cinsn.add(mCall(
+						INVOKESPECIAL,
+						cn.name,
+						ctor.name,
+						ctor.desc
+				));
+				cinsn.add(new FieldInsnNode(PUTFIELD, cn.name, instanceNode.name, instanceNode.desc));
+				AbstractInsnNode ret = findNode(fctor.instructions, insnNode -> insnNode.getOpcode() == RETURN);
+				fctor.instructions.insertBefore(ret, cinsn);
+			}
+			
+			// Modify instance constructor to reference to itself
+			{
+				cinsn = new InsnList();
+				cinsn.add(new VarInsnNode(ALOAD, 0));
+				cinsn.add(new InsnNode(DUP));
+				cinsn.add(new FieldInsnNode(PUTFIELD, cn.name, instanceNode.name, instanceNode.desc));
+				AbstractInsnNode ret = findNode(ctor.instructions, insnNode -> insnNode.getOpcode() == RETURN);
+				ctor.instructions.insertBefore(ret, cinsn);
+			}
+		} else
+		{
+			cinsn.add(new TypeInsnNode(NEW, cn.name)); // new expression instance
+			cinsn.add(new InsnNode(DUP));
+			cinsn.add(new VarInsnNode(ALOAD, 1)); // load LzVariableStore
+			cinsn.add(mCall(
+					INVOKESPECIAL,
+					cn.name,
+					ctor.name,
+					ctor.desc
+			));
+			cinsn.add(new InsnNode(ARETURN));
+		}
+		cn.methods.add(instantiate);
 		//</editor-fold>
 		
 		ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
 		cn.accept(cw);
 		return cw.toByteArray();
+	}
+	
+	protected static AbstractInsnNode findNode(InsnList list, Predicate<AbstractInsnNode> filter)
+	{
+		// Iterating over the InsnList isn't a thing in 6.2. Use older ListIterator approach.
+		ListIterator<AbstractInsnNode> itr = list.iterator();
+		while(itr.hasNext())
+		{
+			AbstractInsnNode i = itr.next();
+			if(filter.test(i))
+				return i;
+		}
+		return null;
 	}
 	
 	protected static Function<String, FieldNode> getVarFieldHelper(ClassNode owner, Set<String> usedFieldNames, MethodNode ctor)
@@ -333,27 +448,18 @@ public class LzJvmCompiler
 					
 					InsnList inject = new InsnList();
 					
-					AbstractInsnNode ret = null;
-					
-					for(AbstractInsnNode insnNode : ctor.instructions)
-						if(insnNode.getOpcode() == RETURN)
-						{
-							ret = insnNode;
-							break;
-						}
-					
 					inject.add(new VarInsnNode(ALOAD, 0)); // this
 					inject.add(new VarInsnNode(ALOAD, 1)); // store
 					inject.add(new LdcInsnNode(fName)); // string
-					inject.add(new MethodInsnNode( // call
+					inject.add(mCall( // call
 							INVOKEINTERFACE,
 							LzVariableStore,
 							"findVar",
-							"(Ljava/lang/String;)" + L_LzVarOp,
-							true
+							"(Ljava/lang/String;)" + L_LzVarOp
 					));
 					inject.add(new FieldInsnNode(PUTFIELD, owner.name, fn.name, fn.desc)); // store to field
 					
+					AbstractInsnNode ret = findNode(ctor.instructions, insnNode -> insnNode.getOpcode() == RETURN);
 					ctor.instructions.insertBefore(ret, inject);
 					
 					return fn;
@@ -378,27 +484,19 @@ public class LzJvmCompiler
 					
 					InsnList inject = new InsnList();
 					
-					AbstractInsnNode ret = null;
-					for(AbstractInsnNode insnNode : ctor.instructions)
-						if(insnNode.getOpcode() == RETURN)
-						{
-							ret = insnNode;
-							break;
-						}
-					
 					inject.add(new VarInsnNode(ALOAD, 0)); // this
 					inject.add(new VarInsnNode(ALOAD, 1)); // store
 					inject.add(new LdcInsnNode(call.name)); // string
 					inject.add(new LdcInsnNode(call.descriptor)); // string
-					inject.add(new MethodInsnNode( // call
+					inject.add(mCall( // call
 							INVOKEINTERFACE,
 							LzVariableStore,
 							"findCall",
-							"(Ljava/lang/String;Ljava/lang/String;)" + L_LzCallOp,
-							true
+							"(Ljava/lang/String;Ljava/lang/String;)" + L_LzCallOp
 					));
 					inject.add(new FieldInsnNode(PUTFIELD, owner.name, fn.name, fn.desc)); // store to field
 					
+					AbstractInsnNode ret = findNode(ctor.instructions, insnNode -> insnNode.getOpcode() == RETURN);
 					ctor.instructions.insertBefore(ret, inject);
 					
 					return fn;
@@ -406,19 +504,69 @@ public class LzJvmCompiler
 		);
 	}
 	
+	private static MethodNode createJCallMethod(LzCallInsn call, ClassNode owner, Set<String> usedMethodNames, String jCall)
+	{
+		final int argc = call.argCount;
+		final int RETURN_INSTRUCT = call.returnType == ArgType.DOUBLE ? DRETURN : ARETURN;
+		
+		StringBuilder desc = new StringBuilder("(");
+		ArgType[] argTypes = call.argTypes;
+		for(ArgType argType : argTypes) desc.append(argType.jvmDesc);
+		desc.append(")").append(call.returnType.jvmDesc);
+		
+		MethodNode m = new MethodNode(
+				ACC_PRIVATE | ACC_STATIC,
+				JavaNamingConventions.processUniqueMethodName("jcall$" + call.name, usedMethodNames),
+				desc.toString(),
+				null,
+				null
+		);
+		
+		Map<String, Object> props = new HashMap<>();
+		props.put("argCount", argc);
+		m.visibleAnnotations = generated(jCall.replace('/', '.') + "." + call.name, props);
+		
+		InsnList insn = m.instructions;
+		
+		int[] slots = new int[argc];
+		int slotCursor = 0;
+		for(int i = 0; i < argc; i++)
+		{
+			slots[i] = slotCursor;
+			if(call.argTypes[i] == ArgType.DOUBLE)
+				slotCursor += 2;
+			else
+				slotCursor += 1;
+		}
+		
+		for(int i = 0; i < argc; ++i)
+		{
+			int slot = slots[i];
+			if(call.argTypes[i] == ArgType.DOUBLE)
+				insn.add(new VarInsnNode(DLOAD, slot));
+			else
+				insn.add(new VarInsnNode(ALOAD, slot));
+		}
+		
+		insn.add(mCall(
+				INVOKESTATIC,
+				jCall.replace('.', '/'),
+				call.name,
+				call.jvmDescriptor
+		));
+		
+		insn.add(new InsnNode(RETURN_INSTRUCT));
+		owner.methods.add(m);
+		return m;
+	}
+	
 	private static MethodNode createCallMethod(LzCallInsn call, ClassNode owner, Set<String> usedMethodNames, FieldNode callField)
 	{
 		StringBuilder desc = new StringBuilder("(");
-		
-		for(ArgType t : call.stackTypes)
-		{
-			if(t == ArgType.DOUBLE)
-				desc.append("D");
-			else
-				desc.append("Ljava/lang/String;");
-		}
-		
-		desc.append("L").append(owner.name).append(";)D");
+		ArgType[] argTypes = call.argTypes;
+		for(ArgType t : argTypes)
+			desc.append(t.jvmDesc);
+		desc.append("L").append(owner.name).append(";)").append(call.returnType.jvmDesc);
 		
 		MethodNode m = new MethodNode(
 				ACC_PRIVATE | ACC_STATIC,
@@ -428,25 +576,25 @@ public class LzJvmCompiler
 				null
 		);
 		
+		final int argc = call.argCount;
+		
 		Map<String, Object> props = new HashMap<>();
-		props.put("argCount", call.argCount);
+		props.put("argCount", argc);
 		m.visibleAnnotations = generated(call.name, props);
 		
 		InsnList insn = m.instructions;
 		
-		int argc = call.stackTypes.length;
+		int RETURN_INSTRUCT = call.returnType == ArgType.DOUBLE ? DRETURN : ARETURN;
 		
 		// -----------------------------
 		// 1. Compute JVM slot layout properly
 		// -----------------------------
-		int[] slots = new int[argc + 1];
+		int[] slots = new int[argc];
 		int slotCursor = 0;
-		
 		for(int i = 0; i < argc; i++)
 		{
 			slots[i] = slotCursor;
-			
-			if(call.stackTypes[i] == ArgType.DOUBLE)
+			if(call.argTypes[i] == ArgType.DOUBLE)
 				slotCursor += 2;
 			else
 				slotCursor += 1;
@@ -461,19 +609,18 @@ public class LzJvmCompiler
 		for(int i = 0; i < argc; ++i)
 		{
 			insn.add(new InsnNode(DUP));
-			pushInt(insn, argc - 1 - i);
+			pushInt(insn, i);
 			
 			int slot = slots[i];
 			
-			if(call.stackTypes[i] == ArgType.DOUBLE)
+			if(call.argTypes[i] == ArgType.DOUBLE)
 			{
 				insn.add(new VarInsnNode(DLOAD, slot));
-				insn.add(new MethodInsnNode(
+				insn.add(mCall(
 						INVOKESTATIC,
 						"java/lang/Double",
 						"valueOf",
-						"(D)Ljava/lang/Double;",
-						false
+						"(D)Ljava/lang/Double;"
 				));
 			} else
 			{
@@ -498,16 +645,14 @@ public class LzJvmCompiler
 		insn.add(new InsnNode(SWAP));
 		
 		// --- call(Object[]) ---
-		insn.add(new MethodInsnNode(
+		insn.add(mCall(
 				INVOKEINTERFACE,
 				LzCallOp,
 				"call",
-				"([Ljava/lang/Object;)D",
-				true
+				"([Ljava/lang/Object;)D"
 		));
 		
-		insn.add(new InsnNode(DRETURN));
-		
+		insn.add(new InsnNode(RETURN_INSTRUCT));
 		owner.methods.add(m);
 		return m;
 	}

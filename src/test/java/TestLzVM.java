@@ -8,49 +8,81 @@ import java.nio.file.Files;
 
 public class TestLzVM
 {
-	public static final LzCallInsn MATH_SIN = new LzCallInsn("math.sin", ArgType.DOUBLE);
-	public static final LzCallInsn MATH_ATAN2 = new LzCallInsn("math.atan2", ArgType.DOUBLE, ArgType.DOUBLE);
-	public static final LzCallInsn MATH_ATAN3 = new LzCallInsn("math.atan3", ArgType.DOUBLE, ArgType.DOUBLE, ArgType.STRING);
+	public static final LzCallInsn MATH_SIN = LzCallInsn.ofDbl("math.sin", ArgType.DOUBLE);
+	public static final LzCallInsn MATH_ATAN2 = LzCallInsn.ofDbl("math.atan2", ArgType.DOUBLE, ArgType.DOUBLE);
+	public static final LzCallInsn MATH_ATAN3 = LzCallInsn.ofDbl("math.atan3", ArgType.DOUBLE, ArgType.DOUBLE, ArgType.STRING);
+	public static final LzCallInsn TEST_CALL = LzCallInsn.ofDbl("doCall", ArgType.DOUBLE, ArgType.STRING);
+	public static final LzCallInsn CONCAT_CALL = LzCallInsn.ofStr("concat", ArgType.STRING, ArgType.STRING);
+	
+	public static String concat(String a, String b)
+	{
+		return a + b;
+	}
+	
+	public static double doCall(double val, String str)
+	{
+		return val + str.length();
+	}
 	
 	public static void main(String[] args)
 	{
-		String[] sConsts = {"test"};
+		String[] sConsts = {"test", "TestLzVM", "TestStringValue"};
 		
 		LzVM vm = createMoLangVM();
 		
-		double[] dConsts = {2, 360};
+		double[] dConsts = {2, 360, 0};
 		String[] varTable = {"q.output", "q.input"};
 		LzCallInsn[] callTable = {
-				MATH_SIN,
-				MATH_ATAN2,
-				MATH_ATAN3
+				MATH_SIN, // 0
+				MATH_ATAN2, // 1
+				MATH_ATAN3, // 2
+				CONCAT_CALL, // 3
+				TEST_CALL // 4
 		};
 		
 		double x = 5;
 		
-		double realValue = LzFMath.cosd(LzFMath.sind(Math.atan2(360, 360 / (x * 2) * 15)));
+		double realValue = LzMath.cosd(LzMath.sind(Math.atan2(360, 360 / (x * 2) * 15)));
 		int[] program = new int[] {
-				LzOpcodes.SCONST, 0,
+				LzOpcodes.CONST, 2, // load dConsts[2]
 				
 				LzOpcodes.LOAD, 0,
 				LzOpcodes.CONST, 0,
 				LzOpcodes.MUL,
 				LzOpcodes.STORE, 1,
 				
-				LzOpcodes.CONST, 1,
 				LzOpcodes.LOAD, 1,
+				LzOpcodes.CONST, 0,
+				LzOpcodes.DIV,
+				LzOpcodes.STORE, 2,
+				
+				LzOpcodes.CONST, 1,
+				LzOpcodes.LOAD, 2,
 				LzOpcodes.DIV,
 				LzOpcodes.READ, 1, // q.input (15)
 				LzOpcodes.MUL,
 				
 				LzOpcodes.CONST, 1,
+				LzOpcodes.SCONST, 0,
 				LzOpcodes.CALL, 2, // math.atan2
 				LzOpcodes.WRITE, 0,
 				
 				LzOpcodes.READ, 0,
 				LzOpcodes.FSIN,
 				LzOpcodes.FCOS,
+				LzOpcodes.SCONST, 0,
+				LzOpcodes.SCONST, 2,
+				LzOpcodes.JCALL, 1, 3,
+				LzOpcodes.JCALL, 1, 4,
+				
+				LzOpcodes.COALESCE,
 				LzOpcodes.RETURN
+		};
+		
+		program = new int[] {
+			LzOpcodes.CONST, 0,
+			LzOpcodes.CONST, 1,
+			LzOpcodes.ADD,
 		};
 		
 		LzProgram prog = new LzProgram(new LzProgramBody(program, dConsts, sConsts, callTable, varTable));
@@ -75,7 +107,10 @@ public class TestLzVM
 		LzProgramStack pStack = prog.info
 				.mallocStack(1)
 				.fillArgs(x);
-
+		
+		System.out.println("Coldboot Eval: " + vm.eval(prog, pStack));
+		System.out.println("Coldboot Java: " + expr.get(x));
+		
 		for(int i = 0; i < 8192; i++) vm.eval(prog, pStack);
 		for(int i = 0; i < 8192; i++) expr.get(x);
 		
