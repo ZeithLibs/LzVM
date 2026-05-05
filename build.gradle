@@ -1,0 +1,23 @@
+plugins {
+    id 'java'
+}
+
+group = 'dev.zeith.libs'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+//    maven {
+//        url = "https://maven.zeith.org"
+//    }
+}
+
+dependencies {
+    compileOnly "org.projectlombok:lombok:$lombok"
+    annotationProcessor "org.projectlombok:lombok:$lombok"
+
+    implementation("org.ow2.asm:asm:$owasm")
+    implementation("org.ow2.asm:asm-tree:$owasm")
+
+//    testImplementation "com.google.guava:guava:33.0.0-jre"
+}
