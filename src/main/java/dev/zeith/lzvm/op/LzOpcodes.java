@@ -20,8 +20,9 @@ public interface LzOpcodes
 	int WRITE = 10; // Pop the double from stack and write it into LzVariableStore (next insn points to a string name in varTable)
 	int LABEL = 11; // Marks a label that the GOTO insn can jump to. All labels get their starting at 0.
 	int JUMP = 12; // Jumps to the label by the next insn index. (the index 0 always points to the first label)
+	int SCONST = 13; // Load string value from const table onto the stack.
 	
-	int I_LAST = JUMP;
+	int I_LAST = SCONST;
 	int I_COUNT = I_LAST + 1;
 	
 	int[] EXTRA_SHIFTS = OpCodeIndexer.computeExtraShifts();
@@ -58,6 +59,7 @@ public interface LzOpcodes
 			c[CALL] = 1;
 			c[READ] = 1;
 			c[WRITE] = 1;
+			c[SCONST] = 1;
 			return c;
 		}
 		
@@ -77,6 +79,7 @@ public interface LzOpcodes
 			c[DIV] = -2 + 1;
 			c[READ] = 1;
 			c[WRITE] = -1;
+			c[SCONST] = 1;
 			
 			return c;
 		}

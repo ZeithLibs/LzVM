@@ -202,7 +202,6 @@ public class LzJvmCompiler
 				}
 				break;
 				
-				// FIXME
 				case LzOpcodes.CALL:
 				{
 					int callIdx = code[++i];
@@ -226,6 +225,13 @@ public class LzJvmCompiler
 							method.desc,
 							false
 					));
+				}
+				break;
+				
+				case LzOpcodes.SCONST:
+				{
+					int constIdx = code[++i];
+					insn.add(new LdcInsnNode(body.sConstTable[constIdx]));
 				}
 				break;
 				
@@ -298,7 +304,7 @@ public class LzJvmCompiler
 							null,
 							null
 					);
-					fn.visibleAnnotations = generated(call.name + call.descriptor(), Collections.emptyMap());
+					fn.visibleAnnotations = generated(call.name + call.descriptor, Collections.emptyMap());
 					owner.fields.add(fn);
 					
 					InsnList inject = new InsnList();
@@ -314,7 +320,7 @@ public class LzJvmCompiler
 					inject.add(new VarInsnNode(ALOAD, 0)); // this
 					inject.add(new VarInsnNode(ALOAD, 1)); // store
 					inject.add(new LdcInsnNode(call.name)); // string
-					inject.add(new LdcInsnNode(call.descriptor())); // string
+					inject.add(new LdcInsnNode(call.descriptor)); // string
 					inject.add(new MethodInsnNode( // call
 							INVOKEINTERFACE,
 							LzVariableStore,
@@ -335,7 +341,7 @@ public class LzJvmCompiler
 	{
 		StringBuilder desc = new StringBuilder("(");
 		
-		for(ArgType t : call.argTypes)
+		for(ArgType t : call.stackTypes)
 		{
 			if(t == ArgType.DOUBLE)
 				desc.append("D");
@@ -359,7 +365,7 @@ public class LzJvmCompiler
 		
 		InsnList insn = m.instructions;
 		
-		int argc = call.argTypes.length;
+		int argc = call.stackTypes.length;
 		
 		// -----------------------------
 		// 1. Compute JVM slot layout properly
@@ -371,7 +377,7 @@ public class LzJvmCompiler
 		{
 			slots[i] = slotCursor;
 			
-			if(call.argTypes[i] == ArgType.DOUBLE)
+			if(call.stackTypes[i] == ArgType.DOUBLE)
 				slotCursor += 2;
 			else
 				slotCursor += 1;
@@ -390,7 +396,7 @@ public class LzJvmCompiler
 			
 			int slot = slots[i];
 			
-			if(call.argTypes[i] == ArgType.DOUBLE)
+			if(call.stackTypes[i] == ArgType.DOUBLE)
 			{
 				insn.add(new VarInsnNode(DLOAD, slot));
 				insn.add(new MethodInsnNode(

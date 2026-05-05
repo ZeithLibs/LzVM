@@ -8,21 +8,25 @@ import java.nio.file.Files;
 
 public class TestLzVM
 {
+	public static final LzCallInsn MATH_SIN = new LzCallInsn("math.sin", ArgType.DOUBLE);
+	public static final LzCallInsn MATH_ATAN2 = new LzCallInsn("math.atan2", ArgType.DOUBLE, ArgType.DOUBLE);
+	public static final LzCallInsn MATH_ATAN3 = new LzCallInsn("math.atan3", ArgType.STRING, ArgType.DOUBLE, ArgType.DOUBLE);
+	
 	public static void main(String[] args)
 	{
-		String[] sConsts = { };
+		String[] sConsts = {"test"};
 		
 		LzVM vm = createMoLangVM();
 		
 		double[] dConsts = {2, 360};
 		String[] varTable = {"q.output", "q.input"};
 		LzCallInsn[] callTable = {
-				new LzCallInsn("math.sin", ArgType.DOUBLE),
-				new LzCallInsn("math.atan2", ArgType.DOUBLE, ArgType.DOUBLE)
+				MATH_SIN,
+				MATH_ATAN2,
+				MATH_ATAN3
 		};
 		
 		double x = 5;
-		double[] dArgs = new double[] {x};
 		
 		double realValue = Math.atan2(360, 360 / (x * 2) * 15);
 		int[] program = new int[] {
@@ -38,7 +42,8 @@ public class TestLzVM
 				LzOpcodes.MUL,
 				
 				LzOpcodes.CONST, 1,
-				LzOpcodes.CALL, 1, // math.atan2
+				LzOpcodes.SCONST, 0,
+				LzOpcodes.CALL, 2, // math.atan2
 				LzOpcodes.WRITE, 0,
 				
 				LzOpcodes.READ, 0,
@@ -46,8 +51,6 @@ public class TestLzVM
 		};
 		
 		LzProgram moprog = new LzProgram(new LzProgramBody(program, dConsts, sConsts, callTable, varTable));
-		LzFactory fac = LzJVM.compile(moprog, 1);
-		LzExpression expr = fac.instantiate(vm);
 		
 		try
 		{
@@ -60,12 +63,15 @@ public class TestLzVM
 			throw new RuntimeException(e);
 		}
 		
+		LzFactory fac = LzJVM.compile(moprog, 1);
+		LzExpression expr = fac.instantiate(vm);
+		
 		LzProgramStack pStack = moprog.info
 				.mallocStack(1)
-				.fillArgs(dArgs);
-		
-		for(int i = 0; i < 8192; i++) vm.eval(moprog, pStack);
-		for(int i = 0; i < 8192; i++) expr.get(dArgs);
+				.fillArgs(x);
+
+//		for(int i = 0; i < 8192; i++) vm.eval(moprog, pStack);
+//		for(int i = 0; i < 8192; i++) expr.get(x);
 		
 		System.out.println(LzOpcodes.disassemble(program, true));
 		
@@ -80,10 +86,10 @@ public class TestLzVM
 		benchmark(() -> vm.eval(moprog, pStack));
 		
 		System.out.println();
-		System.out.println("Java: " + expr.get(dArgs));
+		System.out.println("Java: " + expr.get(x));
 		System.out.println();
 		
-		benchmark(() -> expr.get(dArgs));
+		benchmark(() -> expr.get(x));
 	}
 	
 	private static void benchmark(Runnable task)
@@ -120,12 +126,16 @@ public class TestLzVM
 	{
 		LzVM vm = new LzVM();
 		
-		vm.registerCall(new LzCallInsn("math.sin", ArgType.DOUBLE),
+		vm.registerCall(MATH_SIN,
 				moArgs -> Math.sin(Math.toRadians((double) moArgs[0]))
 		);
 		
-		vm.registerCall(new LzCallInsn("math.atan2", ArgType.DOUBLE, ArgType.DOUBLE),
+		vm.registerCall(MATH_ATAN2,
 				moArgs -> Math.atan2((double) moArgs[0], (double) moArgs[1])
+		);
+		
+		vm.registerCall(MATH_ATAN3,
+				moArgs -> Math.atan2((double) moArgs[1], (double) moArgs[2])
 		);
 		
 		vm.registerVar("q.input", LzVarOp.readOnly(() -> 15));

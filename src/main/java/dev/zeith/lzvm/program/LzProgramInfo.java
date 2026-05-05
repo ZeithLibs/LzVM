@@ -12,8 +12,8 @@ public class LzProgramInfo
 	public LzProgramStack mallocStack(int argCount)
 	{
 		return new LzProgramStack(
-				new double[maxStack],
-				new double[argCount + maxLocals],
+				new Object[maxStack],
+				new Object[argCount + maxLocals],
 				argCount
 		);
 	}

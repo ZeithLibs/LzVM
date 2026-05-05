@@ -7,20 +7,18 @@ import lombok.*;
 public class LzCallInsn
 {
 	public final String name;
-	public final ArgType[] argTypes;
+	public final ArgType[] stackTypes; // These are reverse, used for JVM compilation.
 	public final int argCount;
+	
+	public final String descriptor;
 	
 	public LzCallInsn(String name, ArgType... argTypes)
 	{
 		this.name = name;
-		this.argTypes = argTypes;
-		this.argCount = argTypes.length;
-	}
-	
-	public String descriptor()
-	{
-		StringBuilder sb = new StringBuilder("(");
-		for(ArgType at : argTypes) sb.append("L").append(at.desc).append(";");
-		return sb.append(")").append(ArgType.DOUBLE.desc).toString();
+		int argCount = argTypes.length;
+		this.argCount = argCount;
+		this.stackTypes = new ArgType[argCount];
+		for(int i = 0; i < argCount; i++) this.stackTypes[i] = argTypes[argCount - 1 - i];
+		this.descriptor = ArgType.descriptor(argTypes);
 	}
 }
