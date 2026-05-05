@@ -50,40 +50,40 @@ public class TestLzVM
 				LzOpcodes.RETURN
 		};
 		
-		LzProgram moprog = new LzProgram(new LzProgramBody(program, dConsts, sConsts, callTable, varTable));
+		LzProgram prog = new LzProgram(new LzProgramBody(program, dConsts, sConsts, callTable, varTable));
 		
 		try
 		{
 			Files.write(
 					new File("run", "TestExpression.class").toPath(),
-					LzJvmCompiler.compile(LzExpression.class.getName() + "/TestExpression", moprog, 1)
+					LzJvmCompiler.compile(LzExpression.class.getName() + "/TestExpression", prog, 1)
 			);
 		} catch(Exception e)
 		{
 			throw new RuntimeException(e);
 		}
 		
-		LzFactory fac = LzJVM.compile(moprog, 1);
+		LzFactory fac = LzJVM.compile(prog, 1);
 		LzExpression expr = fac.instantiate(vm);
 		
-		LzProgramStack pStack = moprog.info
+		LzProgramStack pStack = prog.info
 				.mallocStack(1)
 				.fillArgs(x);
 
-//		for(int i = 0; i < 8192; i++) vm.eval(moprog, pStack);
+//		for(int i = 0; i < 8192; i++) vm.eval(prog, pStack);
 //		for(int i = 0; i < 8192; i++) expr.get(x);
 		
-		System.out.println(LzOpcodes.disassemble(program, true));
+		System.out.println(prog.body.disassemble(true));
 		
 		System.out.println();
 		System.out.println("Real: " + realValue);
 		System.out.println();
 		
 		System.out.println();
-		System.out.println("Eval: " + vm.eval(moprog, pStack));
+		System.out.println("Eval: " + vm.eval(prog, pStack));
 		System.out.println();
 		
-		benchmark(() -> vm.eval(moprog, pStack));
+		benchmark(() -> vm.eval(prog, pStack));
 		
 		System.out.println();
 		System.out.println("Java: " + expr.get(x));

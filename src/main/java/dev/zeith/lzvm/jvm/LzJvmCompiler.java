@@ -55,7 +55,7 @@ public class LzJvmCompiler
 				null,
 				null
 		);
-		toString.instructions.add(new LdcInsnNode(dev.zeith.lzvm.jvm.LzExpression.class.getSimpleName() + "{gen: " + LzOpcodes.disassemble(body.insnList, false) + "}"));
+		toString.instructions.add(new LdcInsnNode(dev.zeith.lzvm.jvm.LzExpression.class.getSimpleName() + "{gen: " + body.disassemble(false) + "}"));
 		toString.instructions.add(new InsnNode(ARETURN));
 		cn.methods.add(toString);
 		
@@ -69,7 +69,7 @@ public class LzJvmCompiler
 		);
 		usedMethodNames.add("get");
 		
-		m.visibleAnnotations = generated(LzOpcodes.disassemble(body.insnList, true), Collections.emptyMap());
+		m.visibleAnnotations = generated(body.disassemble(true), Collections.emptyMap());
 		
 		InsnList insn = m.instructions;
 		

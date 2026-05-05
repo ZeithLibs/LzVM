@@ -31,22 +31,6 @@ public interface LzOpcodes
 	Map<String, Integer> BY_NAME = OpCodeIndexer.computeByName();
 	Map<Integer, String> NAME_OF = OpCodeIndexer.computeNameOf();
 	
-	static String disassemble(int[] insn, boolean newlines)
-	{
-		StringBuilder sb = new StringBuilder();
-		
-		for(int i = 0; i < insn.length; i++)
-		{
-			int ins = insn[i];
-			int extra = LzOpcodes.EXTRA_SHIFTS[ins];
-			sb.append(LzOpcodes.NAME_OF.get(ins));
-			for(int j = 0; j < extra; j++) sb.append(", ").append(insn[++i]);
-			if(i + 1 < insn.length) sb.append(newlines ? "\n" : "; ");
-		}
-		
-		return sb.toString();
-	}
-	
 	@SuppressWarnings("DuplicatedCode")
 	class OpCodeIndexer
 	{
