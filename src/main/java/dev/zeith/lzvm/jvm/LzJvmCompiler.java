@@ -18,6 +18,7 @@ public class LzJvmCompiler
 	public static final String LzCallOp = dev.zeith.lzvm.op.LzCallOp.class.getName().replace('.', '/');
 	public static final String LzGenerated = Generated.class.getName().replace('.', '/');
 	
+	public static final String L_LzExpression = "L" + LzExpression + ";";
 	public static final String L_LzVariableStore = "L" + LzVariableStore + ";";
 	public static final String L_LzVarOp = "L" + LzVarOp + ";";
 	public static final String L_LzCallOp = "L" + LzCallOp + ";";
@@ -25,76 +26,121 @@ public class LzJvmCompiler
 	
 	public static byte[] compile(String name, LzProgram program, int argCount)
 	{
-		LzProgramBody body = program.body;
+		final LzProgramBody body = program.body;
 		
-		ClassNode cn = new ClassNode();
+		final ClassNode cn = new ClassNode();
 		cn.version = V1_8;
 		cn.access = ACC_PUBLIC;
 		cn.name = name.replace('.', '/');
 		cn.superName = "java/lang/Object";
 		cn.interfaces = Collections.singletonList(LzExpression);
 		
-		Set<String> usedFieldNames = new HashSet<>();
-		Set<String> usedMethodNames = new HashSet<>();
+		final Set<String> usedFieldNames = new HashSet<>();
+		final Set<String> usedMethodNames = new HashSet<>();
 		
-		// ctor
-		MethodNode ctor = new MethodNode(ACC_PUBLIC, "<init>", "(" + L_LzVariableStore + ")V", null, null);
-		ctor.instructions.add(new VarInsnNode(ALOAD, 0));
-		ctor.instructions.add(new MethodInsnNode(INVOKESPECIAL, cn.superName, "<init>", "()V", false));
-		ctor.instructions.add(new InsnNode(RETURN));
+		final FieldNode isFactory = new FieldNode(ACC_PRIVATE | ACC_FINAL, "isFactory", "Z", null, null);
+		cn.fields.add(isFactory);
+		
+		//<editor-fold desc="expression ctor">
+		final MethodNode ctor = new MethodNode(ACC_PUBLIC, "<init>", "(" + L_LzVariableStore + ")V", null, null);
+		InsnList cinsn = ctor.instructions;
+		{
+			cinsn.add(new VarInsnNode(ALOAD, 0));
+			cinsn.add(new MethodInsnNode(INVOKESPECIAL, cn.superName, "<init>", "()V", false));
+			cinsn.add(new VarInsnNode(ALOAD, 0));
+			cinsn.add(new InsnNode(ICONST_0));
+			cinsn.add(new FieldInsnNode(PUTFIELD, cn.name, isFactory.name, isFactory.desc));
+			cinsn.add(new InsnNode(RETURN));
+		}
 		cn.methods.add(ctor);
+		//</editor-fold>
 		
-		Function<String, FieldNode> varGetter = getVarFieldHelper(cn, usedFieldNames, ctor);
-		Function<LzCallInsn, FieldNode> callGetter = getCallFieldHelper(cn, usedFieldNames, ctor);
+		//<editor-fold desc="factory ctor">
+		final MethodNode fctor = new MethodNode(ACC_PUBLIC, "<init>", "()V", null, null);
+		cinsn = fctor.instructions;
+		{
+			cinsn.add(new VarInsnNode(ALOAD, 0));
+			cinsn.add(new MethodInsnNode(INVOKESPECIAL, cn.superName, "<init>", "()V", false));
+			cinsn.add(new VarInsnNode(ALOAD, 0));
+			cinsn.add(new InsnNode(ICONST_1));
+			cinsn.add(new FieldInsnNode(PUTFIELD, cn.name, isFactory.name, isFactory.desc));
+			cinsn.add(new InsnNode(RETURN));
+		}
+		cn.methods.add(fctor);
+		//</editor-fold>
 		
-		// method: toString()
-		MethodNode toString = new MethodNode(
-				ACC_PUBLIC,
-				"toString",
-				"()Ljava/lang/String;",
-				null,
-				null
-		);
-		toString.instructions.add(new LdcInsnNode(dev.zeith.lzvm.jvm.LzExpression.class.getSimpleName() + "{gen: " + body.disassemble(false) + "}"));
-		toString.instructions.add(new InsnNode(ARETURN));
+		final Function<String, FieldNode> varGetter = getVarFieldHelper(cn, usedFieldNames, ctor);
+		final Function<LzCallInsn, FieldNode> callGetter = getCallFieldHelper(cn, usedFieldNames, ctor);
+		final Map<LzCallInsn, MethodNode> registeredCalls = new HashMap<>(body.callTable.length); // preallocate all calls
+		final String disassembly = body.disassemble(true);
+		
+		//<editor-fold desc="toString()">
+		final MethodNode toString = new MethodNode(ACC_PUBLIC, "toString", "()Ljava/lang/String;", null, null);
+		cinsn = toString.instructions;
+		{
+			LabelNode notFactory = new LabelNode();
+			LabelNode end = new LabelNode();
+			String exprStr = dev.zeith.lzvm.jvm.LzExpression.class.getSimpleName() + "{" + body.disassemble(false) + "}";
+			String factoryStr = dev.zeith.lzvm.jvm.LzFactory.class.getSimpleName() + "{" + body.disassemble(false) + "}";
+			cinsn.add(new VarInsnNode(ALOAD, 0));
+			cinsn.add(new FieldInsnNode(GETFIELD, cn.name, isFactory.name, isFactory.desc));
+			cinsn.add(new JumpInsnNode(IFEQ, notFactory));
+			cinsn.add(new LdcInsnNode(factoryStr));
+			cinsn.add(new JumpInsnNode(GOTO, end));
+			cinsn.add(notFactory);
+			cinsn.add(new LdcInsnNode(exprStr));
+			cinsn.add(end);
+			cinsn.add(new InsnNode(ARETURN));
+		}
 		cn.methods.add(toString);
+		usedMethodNames.add("toString");
+		//</editor-fold>
 		
-		// method: get(LzVariableStore, [D)D
-		MethodNode m = new MethodNode(
-				ACC_PUBLIC,
-				"get",
-				"([D)D",
-				null,
-				null
-		);
+		//<editor-fold desc="instantiate(LzVariableStore)LzExpression">
+		final MethodNode instantiate = new MethodNode(ACC_PUBLIC, "instantiate", "(" + L_LzVariableStore + ")" + L_LzExpression, null, null);
+		instantiate.visibleAnnotations = generated(disassembly, Collections.emptyMap());
+		cinsn = instantiate.instructions;
+		{
+			cinsn.add(new TypeInsnNode(NEW, cn.name)); // new expression instance
+			cinsn.add(new InsnNode(DUP));
+			cinsn.add(new VarInsnNode(ALOAD, 1)); // load LzVariableStore
+			cinsn.add(new MethodInsnNode(
+					INVOKESPECIAL,
+					cn.name,
+					ctor.name,
+					ctor.desc,
+					false
+			));
+			cinsn.add(new InsnNode(ARETURN));
+		}
+		cn.methods.add(instantiate);
+		usedMethodNames.add("instantiate");
+		//</editor-fold>
+		
+		//<editor-fold desc="get([D)D">
+		MethodNode m = new MethodNode(ACC_PUBLIC, "get", "([D)D", null, null);
+		cn.methods.add(m);
 		usedMethodNames.add("get");
-		
-		m.visibleAnnotations = generated(body.disassemble(true), Collections.emptyMap());
+		m.visibleAnnotations = generated(disassembly, Collections.emptyMap());
 		
 		InsnList insn = m.instructions;
 		
-		Map<LzCallInsn, MethodNode> registeredNodes = new HashMap<>();
-		
-		
 		// create locals array
-		pushInt(insn, program.info.maxLocals); // some extra temp space
+		pushInt(insn, program.info.maxLocals); // some temp space
 		insn.add(new IntInsnNode(NEWARRAY, T_DOUBLE));
 		insn.add(new VarInsnNode(ASTORE, 2)); // locals at slot 2
 		
 		int[] code = body.insnList;
 		
-		// --- Label mapping ---
 		Map<Integer, LabelNode> labelMap = new HashMap<>();
+		
 		int labelIndex = 0;
-		
-		for(int j : code)
+		for(int i = 0, insnLen = code.length; i < insnLen; i++)
 		{
-			if(j == LzOpcodes.LABEL)
-			{
-				labelMap.put(labelIndex++, new LabelNode());
-			}
+			int instr = code[i];
+			i += LzOpcodes.EXTRA_SHIFTS[instr];
+			if(instr == LzOpcodes.LABEL) labelMap.put(labelIndex++, new LabelNode());
 		}
-		
 		labelIndex = 0;
 		
 		// --- Emit instructions ---
@@ -208,10 +254,10 @@ public class LzJvmCompiler
 					LzCallInsn call = body.callTable[callIdx];
 					
 					MethodNode method;
-					if((method = registeredNodes.get(call)) == null)
+					if((method = registeredCalls.get(call)) == null)
 					{
 						FieldNode callField = callGetter.apply(call);
-						registeredNodes.put(call, method = createCallMethod(call, cn, usedMethodNames, callField));
+						registeredCalls.put(call, method = createCallMethod(call, cn, usedMethodNames, callField));
 					}
 					
 					// Add the lookup into the stack
@@ -239,8 +285,7 @@ public class LzJvmCompiler
 					throw new IllegalStateException("Unknown opcode: " + op);
 			}
 		}
-		
-		cn.methods.add(m);
+		//</editor-fold>
 		
 		ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
 		cn.accept(cw);
@@ -443,12 +488,12 @@ public class LzJvmCompiler
 		return m;
 	}
 	
-	private static List<AnnotationNode> generated(String expression, Map<String, Object> rest)
+	private static List<AnnotationNode> generated(String value, Map<String, Object> rest)
 	{
 		AnnotationNode an = new AnnotationNode(L_LzGenerated);
 		an.values = new ArrayList<>();
-		an.values.add("expression");
-		an.values.add(expression);
+		an.values.add("value");
+		an.values.add(value);
 		for(Map.Entry<String, Object> e : rest.entrySet())
 		{
 			an.values.add(e.getKey());

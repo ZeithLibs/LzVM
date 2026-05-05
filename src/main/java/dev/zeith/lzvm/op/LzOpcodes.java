@@ -43,6 +43,7 @@ public interface LzOpcodes
 			c[CALL] = 1;
 			c[READ] = 1;
 			c[WRITE] = 1;
+			c[JUMP] = 1;
 			c[SCONST] = 1;
 			return c;
 		}

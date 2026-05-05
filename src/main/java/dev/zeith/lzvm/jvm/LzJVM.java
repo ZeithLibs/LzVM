@@ -1,6 +1,5 @@
 package dev.zeith.lzvm.jvm;
 
-import dev.zeith.lzvm.LzVariableStore;
 import dev.zeith.lzvm.program.LzProgram;
 import lombok.SneakyThrows;
 
@@ -22,22 +21,10 @@ public class LzJVM
 	public static LzFactory compile(LzProgram program, int argCount, IClassDefiner definer)
 	{
 		byte[] bytecode = LzJvmCompiler.compile(LzExpression.class.getName() + "_" + UUID.randomUUID().toString().replace('-', '_'), program, argCount);
-		
-		Constructor<? extends LzExpression> ctor = definer
+		return (LzFactory) definer
 				.defineClass(bytecode)
-				.asSubclass(LzExpression.class)
-				.getDeclaredConstructor(LzVariableStore.class);
-		
-		return a ->
-		{
-			try
-			{
-				return ctor.newInstance(a);
-			} catch(ReflectiveOperationException e)
-			{
-				throw new RuntimeException(e);
-			}
-		};
+				.getDeclaredConstructor()
+				.newInstance();
 	}
 	
 	public static class LzClassLoader

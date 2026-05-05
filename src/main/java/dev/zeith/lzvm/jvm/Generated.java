@@ -5,7 +5,7 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.CLASS)
 public @interface Generated
 {
-	String expression();
+	String value();
 	
 	int argCount() default 0;
 }

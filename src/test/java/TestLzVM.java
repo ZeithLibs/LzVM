@@ -10,7 +10,7 @@ public class TestLzVM
 {
 	public static final LzCallInsn MATH_SIN = new LzCallInsn("math.sin", ArgType.DOUBLE);
 	public static final LzCallInsn MATH_ATAN2 = new LzCallInsn("math.atan2", ArgType.DOUBLE, ArgType.DOUBLE);
-	public static final LzCallInsn MATH_ATAN3 = new LzCallInsn("math.atan3", ArgType.STRING, ArgType.DOUBLE, ArgType.DOUBLE);
+	public static final LzCallInsn MATH_ATAN3 = new LzCallInsn("math.atan3", ArgType.DOUBLE, ArgType.DOUBLE, ArgType.STRING);
 	
 	public static void main(String[] args)
 	{
@@ -30,6 +30,8 @@ public class TestLzVM
 		
 		double realValue = Math.atan2(360, 360 / (x * 2) * 15);
 		int[] program = new int[] {
+				LzOpcodes.SCONST, 0,
+				
 				LzOpcodes.LOAD, 0,
 				LzOpcodes.CONST, 0,
 				LzOpcodes.MUL,
@@ -42,7 +44,6 @@ public class TestLzVM
 				LzOpcodes.MUL,
 				
 				LzOpcodes.CONST, 1,
-				LzOpcodes.SCONST, 0,
 				LzOpcodes.CALL, 2, // math.atan2
 				LzOpcodes.WRITE, 0,
 				
@@ -64,14 +65,17 @@ public class TestLzVM
 		}
 		
 		LzFactory fac = LzJVM.compile(prog, 1);
+		System.out.println(fac);
+		
 		LzExpression expr = fac.instantiate(vm);
+		System.out.println(expr);
 		
 		LzProgramStack pStack = prog.info
 				.mallocStack(1)
 				.fillArgs(x);
 
-//		for(int i = 0; i < 8192; i++) vm.eval(prog, pStack);
-//		for(int i = 0; i < 8192; i++) expr.get(x);
+		for(int i = 0; i < 8192; i++) vm.eval(prog, pStack);
+		for(int i = 0; i < 8192; i++) expr.get(x);
 		
 		System.out.println(prog.body.disassemble(true));
 		
@@ -135,7 +139,7 @@ public class TestLzVM
 		);
 		
 		vm.registerCall(MATH_ATAN3,
-				moArgs -> Math.atan2((double) moArgs[1], (double) moArgs[2])
+				moArgs -> Math.atan2((double) moArgs[0], (double) moArgs[1])
 		);
 		
 		vm.registerVar("q.input", LzVarOp.readOnly(() -> 15));

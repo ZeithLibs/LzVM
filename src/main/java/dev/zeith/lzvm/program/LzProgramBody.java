@@ -54,7 +54,8 @@ public class LzProgramBody
 				return dConstTable[value];
 			case LzOpcodes.CALL:
 				return callTable[value];
-			case LzOpcodes.READ, LzOpcodes.WRITE:
+			case LzOpcodes.READ:
+			case LzOpcodes.WRITE:
 				return varTable[value];
 			case LzOpcodes.SCONST:
 				return sConstTable[value];
