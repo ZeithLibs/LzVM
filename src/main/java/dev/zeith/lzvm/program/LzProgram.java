@@ -1,18 +1,26 @@
 package dev.zeith.lzvm.program;
 
+import lombok.*;
+import org.jetbrains.annotations.*;
+
+@ToString
+@EqualsAndHashCode
 public class LzProgram
 {
-	public final LzProgramInfo info;
-	public final LzProgramBody body;
+	public final @NotNull String name;
+	public final @NotNull LzProgramInfo info;
+	public final @NotNull LzProgramBody body;
 	
-	public LzProgram(LzProgramBody body)
+	public LzProgram(String name, LzProgramBody body)
 	{
-		this(body.computeInfo(), body);
+		this(name, null, body);
 	}
 	
-	public LzProgram(LzProgramInfo info, LzProgramBody body)
+	@Builder
+	public LzProgram(@NotNull String name, @Nullable LzProgramInfo info, @NotNull LzProgramBody body)
 	{
-		this.info = info;
+		this.name = name;
+		this.info = info != null ? info : body.computeInfo();
 		this.body = body;
 	}
 }

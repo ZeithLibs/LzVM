@@ -13,6 +13,11 @@ public interface LzVarOp
 		return getter;
 	}
 	
+	static LzVarOp tempVar()
+	{
+		return readWrite();
+	}
+	
 	static LzVarOp readWrite(DoubleSupplier get, DoubleConsumer set)
 	{
 		return new LzVarOp()

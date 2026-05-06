@@ -1,18 +1,17 @@
 package dev.zeith.lzvm.program;
 
-import lombok.EqualsAndHashCode;
+import lombok.*;
 
 @EqualsAndHashCode
 public class LzCallInsn
 {
 	public final String name;
-	public final ArgType[] argTypes; // These are reverse, used for JVM compilation.
-	public final int argCount;
+	public final ArgType returnType;
+	public final ArgType[] argTypes;
 	
+	public final int argCount;
 	public final String descriptor;
 	public final String jvmDescriptor;
-	
-	public final ArgType returnType;
 	
 	public LzCallInsn(String name, ArgType returnType, ArgType... argTypes)
 	{
@@ -22,6 +21,12 @@ public class LzCallInsn
 		this.argCount = argTypes.length;
 		this.descriptor = ArgType.descriptor(returnType, argTypes);
 		this.jvmDescriptor = ArgType.jvmDescriptor(returnType, argTypes);
+	}
+	
+	@Override
+	public String toString()
+	{
+		return "LzCallInsn{" + descriptor + "}";
 	}
 	
 	public static LzCallInsn ofDbl(String name, ArgType... argTypes)

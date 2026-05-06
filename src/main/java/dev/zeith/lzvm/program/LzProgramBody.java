@@ -2,15 +2,19 @@ package dev.zeith.lzvm.program;
 
 import dev.zeith.lzvm.StringQuoter;
 import dev.zeith.lzvm.op.LzOpcodes;
-import lombok.AllArgsConstructor;
+import lombok.*;
+import org.jetbrains.annotations.NotNull;
 
+@Builder
+@EqualsAndHashCode(exclude = {"disassemblyCache"})
 @AllArgsConstructor
+@ToString(exclude = {"disassemblyCache"})
 public class LzProgramBody
 {
-	public final int[] insnList;
-	public final double[] dConstTable;
-	public final String[] sConstTable;
-	public final LzCallInsn[] callTable;
+	public final int @NotNull [] insnList;
+	public final double @NotNull [] dConstTable;
+	public final @NotNull String[] sConstTable;
+	public final @NotNull LzCallInsn[] callTable;
 	
 	private final String[] disassemblyCache = new String[2];
 	

@@ -17,6 +17,7 @@ subprojects {
     dependencies {
         compileOnly "org.projectlombok:lombok:$lombok"
         annotationProcessor "org.projectlombok:lombok:$lombok"
+        implementation("org.jetbrains:annotations:$jbAnnotation")
     }
 }
 
@@ -39,6 +40,5 @@ dependencies {
 
     implementation("org.ow2.asm:asm:$owasm")
     implementation("org.ow2.asm:asm-tree:$owasm")
-
-//    testImplementation "com.google.guava:guava:33.0.0-jre"
+    implementation("org.jetbrains:annotations:$jbAnnotation")
 }

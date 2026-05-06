@@ -533,14 +533,16 @@ public class LzJvmCompiler
 					InsnList inject = new InsnList();
 					
 					inject.add(new VarInsnNode(ALOAD, 0)); // this
+					
 					inject.add(new VarInsnNode(ALOAD, 1)); // store
 					inject.add(new LdcInsnNode(fName)); // string
 					inject.add(mCall( // call
 							INVOKEINTERFACE,
 							LzVariableStore,
-							"findVar",
+							fName.startsWith("temp.") ? "tempVar" : "findVar",
 							"(Ljava/lang/String;)" + L_LzVarOp
 					));
+					
 					inject.add(new FieldInsnNode(PUTFIELD, owner.name, fn.name, fn.desc)); // store to field
 					
 					AbstractInsnNode ret = findNode(ctor.instructions, insnNode -> insnNode.getOpcode() == RETURN);

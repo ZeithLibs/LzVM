@@ -8,6 +8,7 @@ import dev.zeith.lzvm.program.*;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
 public class LzVM
 		implements LzVariableStore
@@ -74,6 +75,14 @@ public class LzVM
 		
 		Object[] stack = pStack.stack;
 		Object[] locals = pStack.locals;
+		
+		Map<String, LzVarOp> varCache = new HashMap<>();
+		Function<String, LzVarOp> fetchVar = name ->
+		{
+			if(name.startsWith("temp.")) return tempVar(name);
+			return findVar(name);
+		};
+		Function<String, LzVarOp> getVar = n -> varCache.computeIfAbsent(n, fetchVar);
 		
 		List<Integer> labelCords = new ArrayList<>();
 		for(int i = 0; i < insn.length; i++)
@@ -180,7 +189,7 @@ public class LzVM
 					{
 						int varIdx = insn[++i];
 						vinsn = sConsts[varIdx];
-						stack[++ptr] = findVar(vinsn).get();
+						stack[++ptr] = getVar.apply(vinsn).get();
 					}
 					break;
 					
@@ -189,7 +198,7 @@ public class LzVM
 						expect = 1;
 						int varIdx = insn[++i];
 						vinsn = sConsts[varIdx];
-						findVar(vinsn).set(coerce(stack[ptr--]));
+						getVar.apply(vinsn).set(coerce(stack[ptr--]));
 					}
 					break;
 					
@@ -271,8 +280,15 @@ public class LzVM
 		return callRegister.getOrDefault(name + descriptor, LzCallOp.NO_OP);
 	}
 	
-	public LzVarOp findVar(String insn)
+	@Override
+	public LzVarOp findVar(String name)
 	{
-		return varRegister.getOrDefault(insn, LzVarOp.ZERO);
+		return varRegister.getOrDefault(name, LzVarOp.ZERO);
+	}
+	
+	@Override
+	public LzVarOp tempVar(String name)
+	{
+		return LzVarOp.readWrite();
 	}
 }

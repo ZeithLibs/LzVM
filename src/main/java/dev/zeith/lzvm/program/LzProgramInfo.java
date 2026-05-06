@@ -1,7 +1,10 @@
 package dev.zeith.lzvm.program;
 
-import lombok.AllArgsConstructor;
+import lombok.*;
 
+@Builder
+@ToString
+@EqualsAndHashCode
 @AllArgsConstructor
 public class LzProgramInfo
 {

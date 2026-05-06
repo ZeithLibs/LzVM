@@ -29,8 +29,8 @@ public class BinaryExpression
 	@Override
 	protected Object evalStatic()
 	{
-		Object left = children[0].evalStatic();
-		Object right = children[1].evalStatic();
+		Object left = children[0] != null ? children[0].evalStatic() : null;
+		Object right = children[1] != null ? children[1].evalStatic() : null;
 		if(left instanceof Number && right instanceof Number)
 			return operation.operate(
 					((Number) left).doubleValue(),
@@ -133,47 +133,56 @@ public class BinaryExpression
 	
 	private boolean isZero(int child)
 	{
-		Object staticValue = children[child].evalStatic();
+		Object staticValue = children[child] != null ? children[child].evalStatic() : null;
 		return staticValue instanceof Number && LzMath.isZero(((Number) staticValue).doubleValue());
 	}
 	
 	private boolean isNonZero(int child)
 	{
-		Object staticValue = children[child].evalStatic();
+		Object staticValue = children[child] != null ? children[child].evalStatic() : null;
 		return staticValue instanceof Number && LzMath.isNotZero(((Number) staticValue).doubleValue());
 	}
 	
 	private boolean isOne(int child)
 	{
-		Object staticValue = children[child].evalStatic();
+		Object staticValue = children[child] != null ? children[child].evalStatic() : null;
 		return staticValue instanceof Number && LzMath.isOne(((Number) staticValue).doubleValue());
 	}
 	
 	private boolean areEqual()
 	{
-		Object staticValue1 = children[0].evalStatic();
-		Object staticValue2 = children[1].evalStatic();
-		return staticValue1 instanceof Number
-				&& staticValue2 instanceof Number
-				&& LzMath.isZero(((Number) staticValue1).doubleValue() - ((Number) staticValue2).doubleValue());
+		Object left = children[0] != null ? children[0].evalStatic() : null;
+		Object right = children[1] != null ? children[1].evalStatic() : null;
+		return left instanceof Number
+				&& right instanceof Number
+				&& LzMath.isZero(((Number) left).doubleValue() - ((Number) right).doubleValue());
 	}
 	
 	@Override
 	public void toLz(MoLangCompiler compiler, LzProgramBuilder builder, ExpressionScope scope)
 	{
 		ArgType expType = getExpectedLzType();
-		if(expType == ArgType.STRING)
+		if(expType == ArgType.STRING && getOperation() == LzBinaryOp.ADD)
 		{
 			for(MLExpression child : children)
 			{
-				child.toLz(compiler, builder, scope);
-				if(child.getExpectedLzType() != ArgType.STRING)
-					builder.addInsn(LzOpcodes.TO_STRING);
+				if(child != null)
+				{
+					child.toLz(compiler, builder, scope);
+					if(child.getExpectedLzType() != ArgType.STRING)
+						builder.addInsn(LzOpcodes.TO_STRING);
+				} else
+					builder.addConstD(0);
 			}
 		} else
 		{
 			for(MLExpression child : children)
-				child.toLz(compiler, builder, scope);
+			{
+				if(child != null)
+					child.toLz(compiler, builder, scope);
+				else
+					builder.addConstD(0);
+			}
 		}
 		builder.addInsn(operation.getOpcode());
 	}
@@ -182,7 +191,7 @@ public class BinaryExpression
 	public ArgType getExpectedLzType()
 	{
 		// Addition on string + anything acts as concatenation
-		if(operation == LzBinaryOp.ADD && (children[0].getExpectedLzType() == ArgType.STRING || children[1].getExpectedLzType() == ArgType.STRING))
+		if(operation == LzBinaryOp.ADD && ((children[0] != null && children[0].getExpectedLzType() == ArgType.STRING) || (children[1] != null && children[1].getExpectedLzType() == ArgType.STRING)))
 			return ArgType.STRING;
 		return ArgType.DOUBLE;
 	}

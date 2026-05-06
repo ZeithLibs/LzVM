@@ -7,4 +7,6 @@ public interface LzVariableStore
 	LzCallOp findCall(String name, String descriptor);
 	
 	LzVarOp findVar(String name);
+	
+	LzVarOp tempVar(String name);
 }

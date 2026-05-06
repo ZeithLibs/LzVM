@@ -3,17 +3,18 @@ import dev.zeith.lzvm.jvm.*;
 import dev.zeith.lzvm.molang.compiler.MoLangCompiler;
 import dev.zeith.lzvm.molang.compiler.libs.MoMathLibrary;
 import dev.zeith.lzvm.op.LzVarOp;
-import dev.zeith.lzvm.program.LzProgramBody;
+import dev.zeith.lzvm.program.*;
+import dev.zeith.lzvm.program.io.*;
 
-import java.io.File;
-import java.nio.file.Files;
+import java.io.*;
+import java.nio.file.*;
 
 public class TestMoLang
 {
 	public static void main(String[] args)
 			throws InterruptedException
 	{
-		final String expression = "v.test = 0; loop(10, {\n\tv.test = v.test + 1;\n(v.test >= 5 ? break)\n}); v.test";
+		final String expression = "t.test = 0; loop(q.anim_time * 4, {\n\tt.test = t.test + 1;\n(t.test >= 10 ? break)\n}); t.test % 1.5";
 		
 		LzVM vm = new LzVM();
 		double[] time = new double[1];
@@ -29,13 +30,33 @@ public class TestMoLang
 		LzJvmCompiler jvmc = new LzJvmCompiler();
 		jvmc.generatedAnnotation = false;
 		
+		Path run = Paths.get("run");
+		
 		System.out.println(body.disassemble(true));
 		try
 		{
 			Files.write(
-					new File("run", "TestMoExpression.class").toPath(),
+					run.resolve("TestMoExpression.class"),
 					jvmc.compile(LzExpression.class.getName() + "/TestMoExpression", body, 1)
 			);
+			
+			Path lzclass = run.resolve("TestMoExpr.lzclass");
+			
+			LzProgram testOut = new LzProgram("TestProgram", body);
+			try(OutputStream out = Files.newOutputStream(lzclass))
+			{
+				LzProgramIo.write(out, testOut, LzProgramVersion.V1);
+			}
+			
+			LzProgram prog;
+			try(InputStream in = Files.newInputStream(lzclass))
+			{
+				prog = LzProgramIo.read(in);
+			}
+			
+			System.out.println(testOut);
+			System.out.println(prog);
+			System.out.println("EQ = " + testOut.equals(prog));
 		} catch(Exception e)
 		{
 			throw new RuntimeException(e);

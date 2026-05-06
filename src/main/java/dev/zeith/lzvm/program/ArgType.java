@@ -12,6 +12,13 @@ public enum ArgType
 	public final String desc, jvmDesc;
 	public final Class<?> javaType;
 	
+	private static final ArgType[] ARGS = values();
+	
+	public static ArgType byOrdinal(int ordinal)
+	{
+		return ARGS[ordinal];
+	}
+	
 	public static Class<?>[] toJavaArgs(ArgType... argTypes)
 	{
 		Class<?>[] javaArgs = new Class<?>[argTypes.length];

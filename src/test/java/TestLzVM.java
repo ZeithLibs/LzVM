@@ -40,13 +40,13 @@ public class TestLzVM
 				.addConstD(360)
 				.addLoad(2)
 				.addInsn(LzOpcodes.DIV)
-				.addRead("q.input")
+				.addRead("temp.input")
 				.addInsn(LzOpcodes.MUL)
 				.addConstD(360)
 				.addConstS("test")
 				.addCall(MATH_ATAN3)
-				.addWrite("q.output")
-				.addRead("q.output")
+				.addWrite("temp.output")
+				.addRead("temp.output")
 				.addInsn(LzOpcodes.FSIN)
 				.addInsn(LzOpcodes.FCOS)
 				.addConstS("TestStringValue")
@@ -108,7 +108,7 @@ public class TestLzVM
 		LzExpression expr = fac.instantiate(vm);
 		System.out.println(expr);
 		
-		LzProgram prog = new LzProgram(genProg);
+		LzProgram prog = new LzProgram("TestProgram", genProg);
 		LzProgramStack pStack = prog.info
 				.mallocStack(1)
 				.fillArgs(x);
