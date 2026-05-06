@@ -12,8 +12,13 @@ public class LzProgramBody
 	public final String[] sConstTable;
 	public final LzCallInsn[] callTable;
 	
+	private final String[] disassemblyCache = new String[2];
+	
 	public String disassemble(boolean newlines)
 	{
+		int cacheIdx = newlines ? 1 : 0;
+		if(disassemblyCache[cacheIdx] != null) return disassemblyCache[cacheIdx];
+		
 		StringBuilder sb = new StringBuilder();
 		
 		for(int i = 0; i < insnList.length; i++)
@@ -29,7 +34,7 @@ public class LzProgramBody
 			if(i + 1 < insnList.length) sb.append(newlines ? "\n" : "; ");
 		}
 		
-		return sb.toString();
+		return disassemblyCache[cacheIdx] = sb.toString();
 	}
 	
 	public String getConstantAsString(int insn, int ordinal, int value)

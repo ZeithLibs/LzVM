@@ -140,6 +140,7 @@ public class LzVM
 					case LzOpcodes.SUB:
 					case LzOpcodes.MUL:
 					case LzOpcodes.DIV:
+					case LzOpcodes.MOD:
 					case LzOpcodes.EQUALS:
 					case LzOpcodes.NOT_EQUALS:
 					case LzOpcodes.GREATER_THAN:
@@ -218,6 +219,19 @@ public class LzVM
 					}
 					break;
 					
+					case LzOpcodes.TO_STRING:
+					{
+						Object obj = stack[ptr--];
+						stack[++ptr] = String.valueOf(obj);
+					}
+					break;
+					
+					case LzOpcodes.POP:
+					{
+						Object obj = stack[ptr--];
+					}
+					break;
+					
 					default:
 						throw new LzVMOperationNotSupportedException("Unknown opcode: " + LzOpcodes.opNameIndexed(i, state));
 				}
@@ -259,6 +273,6 @@ public class LzVM
 	
 	public LzVarOp findVar(String insn)
 	{
-		return varRegister.get(insn);
+		return varRegister.getOrDefault(insn, LzVarOp.ZERO);
 	}
 }

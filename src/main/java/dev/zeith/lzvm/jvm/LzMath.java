@@ -2,6 +2,8 @@ package dev.zeith.lzvm.jvm;
 
 public class LzMath
 {
+	public static final double DEG_TO_RAD = (Math.PI / 180);
+	public static final double RAD_TO_DEG = (180 / Math.PI);
 	public static final double EPS = 1.0E-8;
 	private static final float[] SIN = new float[65536];
 	
@@ -38,7 +40,7 @@ public class LzMath
 	
 	public static boolean isOne(double d)
 	{
-		return d - 1 < EPS;
+		return Math.abs(d - 1) < EPS;
 	}
 	
 	// Methods invoked from LzVM -> JVM compiled bytecode
@@ -101,5 +103,10 @@ public class LzMath
 	public static double cosd(double pValue)
 	{
 		return SIN[(int) (pValue * 10430.378F + 16384F) & 0xFFFF];
+	}
+	
+	public static String concs(Object a, Object b)
+	{
+		return String.valueOf(a).concat(String.valueOf(b));
 	}
 }

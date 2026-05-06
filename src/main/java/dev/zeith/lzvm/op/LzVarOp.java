@@ -6,6 +6,8 @@ import java.util.function.*;
 
 public interface LzVarOp
 {
+	LzVarOp ZERO = readOnly(() -> 0);
+	
 	static LzVarOp readOnly(ReadonlyLzVarOp getter)
 	{
 		return getter;

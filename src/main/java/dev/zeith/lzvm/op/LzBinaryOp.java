@@ -41,6 +41,14 @@ public enum LzBinaryOp
 					return left / right;
 				}
 			},
+	MOD(LzOpcodes.MOD, "%")
+			{
+				@Override
+				public double operate(double left, double right)
+				{
+					return left % right;
+				}
+			},
 	EQUALS(LzOpcodes.EQUALS, "==")
 			{
 				@Override

@@ -1,10 +1,12 @@
 package dev.zeith.lzvm.program;
 
 import dev.zeith.lzvm.op.LzOpcodes;
+import lombok.RequiredArgsConstructor;
 
 import java.util.*;
 import java.util.function.*;
 
+@RequiredArgsConstructor
 public class LzProgramBuilder
 {
 	protected final List<Integer> insnList = new ArrayList<>();
@@ -16,9 +18,13 @@ public class LzProgramBuilder
 	protected final BiMap<LzLabel, Integer> labelTable = new BiMap<>(IdentityHashMap::new);
 	protected final Map<Integer, LzLabel> jumps = new HashMap<>();
 	
-	public static LzProgramBuilder of()
+	protected final Set<Integer> usedLocals = new HashSet<>();
+	
+	protected final int argCount;
+	
+	public static LzProgramBuilder of(int argCount)
 	{
-		return new LzProgramBuilder();
+		return new LzProgramBuilder(argCount);
 	}
 	
 	public LzProgramBuilder addInsn(int insn)
@@ -101,6 +107,13 @@ public class LzProgramBuilder
 	public LzProgramBuilder addJumpIfTrue(LzLabel label)
 	{
 		return addJump(LzOpcodes.JUMP_IF_TRUE, label);
+	}
+	
+	public int allocLocal()
+	{
+		int local = argCount + 4 + usedLocals.size() * 4;
+		usedLocals.add(local);
+		return local;
 	}
 	
 	// Internal methods

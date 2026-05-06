@@ -27,7 +27,7 @@ public class TestLzVM
 	private static LzProgramBody gen1()
 	{
 		return LzProgramBuilder
-				.of()
+				.of(1)
 				.addConstD(0)
 				.addLoad(0)
 				.addConstD(2)
@@ -62,7 +62,7 @@ public class TestLzVM
 	{
 		LzLabel jumpTarget = new LzLabel();
 		return LzProgramBuilder
-				.of()
+				.of(1)
 				
 				// simple min(x, 5) implementation
 				
@@ -86,20 +86,23 @@ public class TestLzVM
 		
 		double x = 8;
 		
-		LzProgramBody genProg = conditionalGen();
+		LzProgramBody genProg = gen1();
+		LzJvmCompiler jvmc = new LzJvmCompiler();
+		jvmc.generatedAnnotation = true;
 		
 		try
 		{
 			Files.write(
 					new File("run", "TestExpression.class").toPath(),
-					LzJvmCompiler.compile(LzExpression.class.getName() + "/TestExpression", genProg, 1)
+					jvmc.compile(LzExpression.class.getName() + "/TestExpression", genProg, 1)
 			);
 		} catch(Exception e)
 		{
 			throw new RuntimeException(e);
 		}
+		jvmc.generatedAnnotation = false;
 		
-		LzFactory fac = LzJVM.compile(genProg, 1);
+		LzFactory fac = LzJVM.compile(jvmc, genProg, 1, new LzJVM.LzClassLoader());
 		System.out.println(fac);
 		
 		LzExpression expr = fac.instantiate(vm);
