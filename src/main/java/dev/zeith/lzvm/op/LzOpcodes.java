@@ -25,14 +25,19 @@ public interface LzOpcodes
 	int LESS_THAN = 16;
 	int LESS_EQ_THAN = 17;
 	int COALESCE = 18;
-	int FSIN = 19;
-	int FCOS = 20;
-	int READ = 21; // Read variable by const (next insn points to a string name in varTable) and push onto the stack
-	int WRITE = 22; // Pop the double from stack and write it into LzVariableStore (next insn points to a string name in varTable)
-	int LABEL = 23; // Marks a label that the GOTO insn can jump to. All labels get their starting at 0.
-	int JUMP = 24; // Jumps to the label by the next insn index. (the index 0 always points to the first label)
+	int AND = 19;
+	int OR = 20;
+	int NOT = 21;
+	int FSIN = 22;
+	int FCOS = 23;
+	int READ = 24; // Read variable by const (next insn points to a string name in varTable) and push onto the stack
+	int WRITE = 25; // Pop the double from stack and write it into LzVariableStore (next insn points to a string name in varTable)
+	int LABEL = 26; // Marks a label that the GOTO insn can jump to. All labels get their starting at 0.
+	int JUMP = 27; // Jumps to the label by the next insn index. (the index 0 always points to the first label)
+	int JUMP_IF_TRUE = 28;
+	int JUMP_IF_FALSE = 29;
 	
-	int I_LAST = JUMP;
+	int I_LAST = JUMP_IF_FALSE;
 	int I_COUNT = I_LAST + 1;
 	
 	int[] EXTRA_SHIFTS = OpCodeIndexer.computeExtraShifts();
@@ -40,6 +45,16 @@ public interface LzOpcodes
 	
 	Map<String, Integer> BY_NAME = OpCodeIndexer.computeByName();
 	Map<Integer, String> NAME_OF = OpCodeIndexer.computeNameOf();
+	
+	static String opName(int opcode)
+	{
+		return "Op(" + LzOpcodes.NAME_OF.get(opcode) + ")";
+	}
+	
+	static String opNameIndexed(int idx, int opcode)
+	{
+		return "Op[" + idx + "](" + LzOpcodes.NAME_OF.get(opcode) + ")";
+	}
 	
 	@SuppressWarnings("DuplicatedCode")
 	class OpCodeIndexer
@@ -56,6 +71,8 @@ public interface LzOpcodes
 			c[READ] = 1;
 			c[WRITE] = 1;
 			c[JUMP] = 1;
+			c[JUMP_IF_TRUE] = 1;
+			c[JUMP_IF_FALSE] = 1;
 			return c;
 		}
 		
@@ -79,8 +96,12 @@ public interface LzOpcodes
 			c[LESS_THAN] = -1;
 			c[LESS_EQ_THAN] = -1;
 			c[COALESCE] = -1;
+			c[AND] = -1;
+			c[OR] = -1;
 			c[READ] = 1;
 			c[WRITE] = -1;
+			c[JUMP_IF_TRUE] = -1;
+			c[JUMP_IF_FALSE] = -1;
 			
 			// calls are dynamic in nature and the argument count is always followed by the instruction
 			c[JCALL] = -1;

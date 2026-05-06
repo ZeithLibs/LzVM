@@ -11,7 +11,6 @@ public class LzProgramBody
 	public final double[] dConstTable;
 	public final String[] sConstTable;
 	public final LzCallInsn[] callTable;
-	public final String[] varTable;
 	
 	public String disassemble(boolean newlines)
 	{
@@ -58,7 +57,6 @@ public class LzProgramBody
 				return ordinal == 1 ? callTable[value] : sConstTable[value];
 			case LzOpcodes.READ:
 			case LzOpcodes.WRITE:
-				return varTable[value];
 			case LzOpcodes.SCONST:
 				return sConstTable[value];
 		}

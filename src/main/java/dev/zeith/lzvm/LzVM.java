@@ -69,12 +69,19 @@ public class LzVM
 	{
 		int[] insn = program.insnList;
 		LzCallInsn[] callTable = program.callTable;
-		String[] varTable = program.varTable;
 		double[] consts = program.dConstTable;
 		String[] sConsts = program.sConstTable;
 		
 		Object[] stack = pStack.stack;
 		Object[] locals = pStack.locals;
+		
+		List<Integer> labelCords = new ArrayList<>();
+		for(int i = 0; i < insn.length; i++)
+		{
+			int instr = insn[i];
+			i += LzOpcodes.EXTRA_SHIFTS[instr];
+			if(instr == LzOpcodes.LABEL) labelCords.add(i);
+		}
 		
 		int ptr = -1;
 		
@@ -140,6 +147,8 @@ public class LzVM
 					case LzOpcodes.LESS_THAN:
 					case LzOpcodes.LESS_EQ_THAN:
 					case LzOpcodes.COALESCE:
+					case LzOpcodes.AND:
+					case LzOpcodes.OR:
 					{
 						expect = 2;
 						double right = coerce(stack[ptr--]);
@@ -147,23 +156,29 @@ public class LzVM
 						stack[++ptr] = LzBinaryOp.byOpcode(state).operate(left, right);
 					}
 					break;
+					case LzOpcodes.NOT:
+					{
+						double onStack = coerce(stack[ptr]);
+						stack[ptr] = LzMath.notd(onStack);
+					}
+					break;
 					case LzOpcodes.FSIN:
 					{
-						double onStack = coerce(stack[ptr--]);
-						stack[++ptr] = LzMath.sind(onStack);
+						double onStack = coerce(stack[ptr]);
+						stack[ptr] = LzMath.sind(onStack);
 					}
 					break;
 					case LzOpcodes.FCOS:
 					{
-						double onStack = coerce(stack[ptr--]);
-						stack[++ptr] = LzMath.cosd(onStack);
+						double onStack = coerce(stack[ptr]);
+						stack[ptr] = LzMath.cosd(onStack);
 					}
 					break;
 					
 					case LzOpcodes.READ:
 					{
 						int varIdx = insn[++i];
-						vinsn = varTable[varIdx];
+						vinsn = sConsts[varIdx];
 						stack[++ptr] = findVar(vinsn).get();
 					}
 					break;
@@ -172,19 +187,45 @@ public class LzVM
 					{
 						expect = 1;
 						int varIdx = insn[++i];
-						vinsn = varTable[varIdx];
+						vinsn = sConsts[varIdx];
 						findVar(vinsn).set(coerce(stack[ptr--]));
 					}
 					break;
 					
-					default:
+					case LzOpcodes.LABEL:
 						break;
+					
+					case LzOpcodes.JUMP:
+					{
+						int lblIdx = insn[++i];
+						i = labelCords.get(lblIdx);
+					}
+					break;
+					
+					case LzOpcodes.JUMP_IF_TRUE:
+					{
+						int lblIdx = insn[++i];
+						if(LzMath.isZero(coerce(stack[ptr--])))
+							i = labelCords.get(lblIdx);
+					}
+					break;
+					
+					case LzOpcodes.JUMP_IF_FALSE:
+					{
+						int lblIdx = insn[++i];
+						if(LzMath.isNotZero(coerce(stack[ptr--])))
+							i = labelCords.get(lblIdx);
+					}
+					break;
+					
+					default:
+						throw new LzVMOperationNotSupportedException("Unknown opcode: " + LzOpcodes.opNameIndexed(i, state));
 				}
 			}
 		} catch(ArrayIndexOutOfBoundsException e)
 		{
 			if(ptr < 0)
-				throw new LzVMStackUnderflowException("Op[" + i + "](" + LzOpcodes.NAME_OF.get(state) + ") expected " + expect + " arguments on the stack.", e);
+				throw new LzVMStackUnderflowException(LzOpcodes.opNameIndexed(i, state) + " expected " + expect + " arguments on the stack.", e);
 			throw e;
 		} catch(NullPointerException e)
 		{

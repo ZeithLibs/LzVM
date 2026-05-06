@@ -1,9 +1,8 @@
 package dev.zeith.lzvm.jvm;
 
-import dev.zeith.lzvm.program.LzProgram;
+import dev.zeith.lzvm.program.LzProgramBody;
 import lombok.SneakyThrows;
 
-import java.lang.reflect.Constructor;
 import java.util.UUID;
 
 import static java.lang.ClassLoader.getSystemClassLoader;
@@ -12,13 +11,13 @@ public class LzJVM
 {
 	public static final LzClassLoader LZ_CLASS_LOADER = new LzClassLoader(getSystemClassLoader());
 	
-	public static LzFactory compile(LzProgram program, int argCount)
+	public static LzFactory compile(LzProgramBody program, int argCount)
 	{
 		return compile(program, argCount, LZ_CLASS_LOADER);
 	}
 	
 	@SneakyThrows
-	public static LzFactory compile(LzProgram program, int argCount, IClassDefiner definer)
+	public static LzFactory compile(LzProgramBody program, int argCount, IClassDefiner definer)
 	{
 		byte[] bytecode = LzJvmCompiler.compile(LzExpression.class.getName() + "_" + UUID.randomUUID().toString().replace('-', '_'), program, argCount);
 		return (LzFactory) definer

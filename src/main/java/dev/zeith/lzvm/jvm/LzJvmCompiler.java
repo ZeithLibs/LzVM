@@ -25,18 +25,14 @@ public class LzJvmCompiler
 	public static final String L_LzCallOp = "L" + LzCallOp + ";";
 	public static final String L_LzGenerated = "L" + LzGenerated + ";";
 	
-	static boolean useArray = false;
-	
 	@SuppressWarnings("deprecation") // methodCall is not actually deprecated,
 	private static MethodInsnNode mCall(final int opcode, final String owner, final String name, final String descriptor)
 	{
 		return new MethodInsnNode(opcode, owner, name, descriptor);
 	}
 	
-	public static byte[] compile(String name, LzProgram program, int argCount)
+	public static byte[] compile(String name, LzProgramBody body, int argCount)
 	{
-		final LzProgramBody body = program.body;
-		
 		final ClassNode cn = new ClassNode();
 		cn.version = V1_8;
 		cn.access = ACC_PUBLIC;
@@ -129,12 +125,12 @@ public class LzJvmCompiler
 		InsnList insn = m.instructions;
 		
 		// create locals array
-		if(useArray)
-		{
-			pushInt(insn, program.info.maxLocals); // some temp space
-			insn.add(new IntInsnNode(NEWARRAY, T_DOUBLE));
-			insn.add(new VarInsnNode(ASTORE, 2)); // locals at slot 2
-		}
+//		if(useArray)
+//		{
+//			pushInt(insn, program.info.maxLocals); // some temp space
+//			insn.add(new IntInsnNode(NEWARRAY, T_DOUBLE));
+//			insn.add(new VarInsnNode(ASTORE, 2)); // locals at slot 2
+//		}
 		
 		int[] code = body.insnList;
 		
@@ -187,14 +183,14 @@ public class LzJvmCompiler
 				{
 					int idx = code[++i];
 					
-					if(useArray || idx < argCount)
+					if(/*useArray ||*/ idx < argCount)
 					{
-						insn.add(new VarInsnNode(ALOAD, idx < argCount ? 1 : 2));
+						insn.add(new VarInsnNode(ALOAD, /*idx >= argCount ? 2 :*/ 1));
 						pushInt(insn, idx);
 						insn.add(new InsnNode(DALOAD));
 					} else
 					{
-						insn.add(new VarInsnNode(DLOAD, 2 + idx));
+						insn.add(new VarInsnNode(DLOAD, 1 + idx));
 					}
 					
 					++stackPos;
@@ -204,16 +200,16 @@ public class LzJvmCompiler
 				case LzOpcodes.STORE:
 				{
 					int idx = code[++i];
-					if(useArray || idx < argCount)
+					if(/*useArray ||*/ idx < argCount)
 					{
 						insn.add(new VarInsnNode(DSTORE, 3));
-						insn.add(new VarInsnNode(ALOAD, idx < argCount ? 1 : 2));
+						insn.add(new VarInsnNode(ALOAD, /*idx >= argCount ? 2 :*/ 1));
 						pushInt(insn, idx);
 						insn.add(new VarInsnNode(DLOAD, 3));
 						insn.add(new InsnNode(DASTORE));
 					} else
 					{
-						insn.add(new VarInsnNode(DSTORE, 2 + idx));
+						insn.add(new VarInsnNode(DSTORE, 1 + idx));
 					}
 					--stackPos;
 				}
@@ -285,7 +281,13 @@ public class LzJvmCompiler
 				case LzOpcodes.LESS_EQ_THAN:
 					insn.add(mCall(INVOKESTATIC, LzFMath, "letd", "(DD)D")); --stackPos; break;
 				case LzOpcodes.COALESCE:
-					insn.add(mCall(INVOKESTATIC, LzFMath, "coalesce", "(DD)D")); --stackPos; break;
+					insn.add(mCall(INVOKESTATIC, LzFMath, "coald", "(DD)D")); --stackPos; break;
+				case LzOpcodes.AND:
+					insn.add(mCall(INVOKESTATIC, LzFMath, "andd", "(DD)D")); --stackPos; break;
+				case LzOpcodes.OR:
+					insn.add(mCall(INVOKESTATIC, LzFMath, "ord", "(DD)D")); --stackPos; break;
+				case LzOpcodes.NOT:
+					insn.add(mCall(INVOKESTATIC, LzFMath, "notd", "(D)D")); break;
 				case LzOpcodes.FSIN:
 					insn.add(mCall(INVOKESTATIC, LzFMath, "sind", "(D)D")); break;
 				case LzOpcodes.FCOS:
@@ -294,7 +296,7 @@ public class LzJvmCompiler
 				case LzOpcodes.READ:
 				{
 					int idx = code[++i];
-					String nameStr = body.varTable[idx];
+					String nameStr = body.sConstTable[idx];
 					FieldNode varHolder = varGetter.apply(nameStr);
 					
 					insn.add(new VarInsnNode(ALOAD, 0));
@@ -313,7 +315,7 @@ public class LzJvmCompiler
 				case LzOpcodes.WRITE:
 				{
 					int idx = code[++i];
-					String nameStr = body.varTable[idx];
+					String nameStr = body.sConstTable[idx];
 					FieldNode varHolder = varGetter.apply(nameStr);
 					
 					// Store into temp variable
@@ -347,8 +349,24 @@ public class LzJvmCompiler
 				}
 				break;
 				
+				case LzOpcodes.JUMP_IF_TRUE:
+				{
+					int target = code[++i];
+					insn.add(mCall(INVOKESTATIC, LzFMath, "isNotZero", "(D)Z"));
+					insn.add(new JumpInsnNode(IFEQ, labelMap.get(target)));
+				}
+				break;
+				
+				case LzOpcodes.JUMP_IF_FALSE:
+				{
+					int target = code[++i];
+					insn.add(mCall(INVOKESTATIC, LzFMath, "isZero", "(D)Z"));
+					insn.add(new JumpInsnNode(IFEQ, labelMap.get(target)));
+				}
+				break;
+				
 				default:
-					throw new IllegalStateException("Unknown opcode: " + op);
+					throw new IllegalStateException("Unknown opcode: " + LzOpcodes.opNameIndexed(i, op));
 			}
 		}
 		

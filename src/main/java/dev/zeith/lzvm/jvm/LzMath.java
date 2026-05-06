@@ -21,11 +21,6 @@ public class LzMath
 		return SIN[(int) (pValue * 10430.378F + 16384F) & 0xFFFF];
 	}
 	
-	public static double coalesce(double left, double right)
-	{
-		return Math.abs(left) > EPS ? left : right;
-	}
-	
 	public static double coerce(boolean value)
 	{
 		return value ? 1.0 : 0.0;
@@ -34,6 +29,11 @@ public class LzMath
 	public static boolean isZero(double d)
 	{
 		return Math.abs(d) < EPS;
+	}
+	
+	public static boolean isNotZero(double d)
+	{
+		return Math.abs(d) > EPS;
 	}
 	
 	public static boolean isOne(double d)
@@ -71,6 +71,26 @@ public class LzMath
 	public static double letd(double left, double right)
 	{
 		return coerce(left <= right + EPS);
+	}
+	
+	public static double coald(double left, double right)
+	{
+		return Math.abs(left) > EPS ? left : right;
+	}
+	
+	public static double andd(double left, double right)
+	{
+		return LzMath.isZero(left) || LzMath.isZero(right) ? 0.0 : 1.0;
+	}
+	
+	public static double ord(double left, double right)
+	{
+		return LzMath.isZero(left) && LzMath.isZero(right) ? 0.0 : 1.0;
+	}
+	
+	public static double notd(double d)
+	{
+		return Math.abs(d) < EPS ? 1.0 : 0.0;
 	}
 	
 	public static double sind(double pValue)

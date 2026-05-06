@@ -1,5 +1,6 @@
 package dev.zeith.lzvm.op;
 
+import dev.zeith.lzvm.jvm.LzMath;
 import lombok.*;
 
 import static dev.zeith.lzvm.jvm.LzMath.EPS;
@@ -94,6 +95,22 @@ public enum LzBinaryOp
 				public double operate(double left, double right)
 				{
 					return Math.abs(left) > EPS ? left : right;
+				}
+			},
+	AND(LzOpcodes.AND, "&&")
+			{
+				@Override
+				public double operate(double left, double right)
+				{
+					return LzMath.isZero(left) || LzMath.isZero(right) ? 0.0 : 1.0;
+				}
+			},
+	OR(LzOpcodes.OR, "||")
+			{
+				@Override
+				public double operate(double left, double right)
+				{
+					return LzMath.isZero(left) && LzMath.isZero(right) ? 0.0 : 1.0;
 				}
 			},
 	;

@@ -24,86 +24,88 @@ public class TestLzVM
 		return val + str.length();
 	}
 	
+	private static LzProgramBody gen1()
+	{
+		return LzProgramBuilder
+				.of()
+				.addConstD(0)
+				.addLoad(0)
+				.addConstD(2)
+				.addInsn(LzOpcodes.MUL)
+				.addStore(1)
+				.addLoad(1)
+				.addConstD(2)
+				.addInsn(LzOpcodes.DIV)
+				.addStore(2)
+				.addConstD(360)
+				.addLoad(2)
+				.addInsn(LzOpcodes.DIV)
+				.addRead("q.input")
+				.addInsn(LzOpcodes.MUL)
+				.addConstD(360)
+				.addConstS("test")
+				.addCall(MATH_ATAN3)
+				.addWrite("q.output")
+				.addRead("q.output")
+				.addInsn(LzOpcodes.FSIN)
+				.addInsn(LzOpcodes.FCOS)
+				.addConstS("TestStringValue")
+				.addConstS("test")
+				.addJCall("TestLzVM", CONCAT_CALL)
+				.addJCall("TestLzVM", TEST_CALL)
+				.addInsn(LzOpcodes.COALESCE)
+				.addInsn(LzOpcodes.RETURN)
+				.build();
+	}
+	
+	private static LzProgramBody conditionalGen()
+	{
+		LzLabel jumpTarget = new LzLabel();
+		return LzProgramBuilder
+				.of()
+				
+				// simple min(x, 5) implementation
+				
+				.addLoad(0).addConstD(5).addInsn(LzOpcodes.GREATER_THAN)
+				.addInsn(LzOpcodes.NOT)
+				.addJumpIfFalse(jumpTarget)
+				// if x > 5 then execute this block
+				.addConstD(5)
+				.addInsn(LzOpcodes.RETURN)
+				.addLabel(jumpTarget)
+				//
+				
+				.addLoad(0)
+				.addInsn(LzOpcodes.RETURN)
+				.build();
+	}
+	
 	public static void main(String[] args)
 	{
-		String[] sConsts = {"test", "TestLzVM", "TestStringValue"};
-		
 		LzVM vm = createMoLangVM();
 		
-		double[] dConsts = {2, 360, 0};
-		String[] varTable = {"q.output", "q.input"};
-		LzCallInsn[] callTable = {
-				MATH_SIN, // 0
-				MATH_ATAN2, // 1
-				MATH_ATAN3, // 2
-				CONCAT_CALL, // 3
-				TEST_CALL // 4
-		};
+		double x = 8;
 		
-		double x = 5;
-		
-		double realValue = LzMath.cosd(LzMath.sind(Math.atan2(360, 360 / (x * 2) * 15)));
-		int[] program = new int[] {
-				LzOpcodes.CONST, 2, // load dConsts[2]
-				
-				LzOpcodes.LOAD, 0,
-				LzOpcodes.CONST, 0,
-				LzOpcodes.MUL,
-				LzOpcodes.STORE, 1,
-				
-				LzOpcodes.LOAD, 1,
-				LzOpcodes.CONST, 0,
-				LzOpcodes.DIV,
-				LzOpcodes.STORE, 2,
-				
-				LzOpcodes.CONST, 1,
-				LzOpcodes.LOAD, 2,
-				LzOpcodes.DIV,
-				LzOpcodes.READ, 1, // q.input (15)
-				LzOpcodes.MUL,
-				
-				LzOpcodes.CONST, 1,
-				LzOpcodes.SCONST, 0,
-				LzOpcodes.CALL, 2, // math.atan2
-				LzOpcodes.WRITE, 0,
-				
-				LzOpcodes.READ, 0,
-				LzOpcodes.FSIN,
-				LzOpcodes.FCOS,
-				LzOpcodes.SCONST, 0,
-				LzOpcodes.SCONST, 2,
-				LzOpcodes.JCALL, 1, 3,
-				LzOpcodes.JCALL, 1, 4,
-				
-				LzOpcodes.COALESCE,
-				LzOpcodes.RETURN
-		};
-		
-		program = new int[] {
-			LzOpcodes.CONST, 0,
-			LzOpcodes.CONST, 1,
-			LzOpcodes.ADD,
-		};
-		
-		LzProgram prog = new LzProgram(new LzProgramBody(program, dConsts, sConsts, callTable, varTable));
+		LzProgramBody genProg = conditionalGen();
 		
 		try
 		{
 			Files.write(
 					new File("run", "TestExpression.class").toPath(),
-					LzJvmCompiler.compile(LzExpression.class.getName() + "/TestExpression", prog, 1)
+					LzJvmCompiler.compile(LzExpression.class.getName() + "/TestExpression", genProg, 1)
 			);
 		} catch(Exception e)
 		{
 			throw new RuntimeException(e);
 		}
 		
-		LzFactory fac = LzJVM.compile(prog, 1);
+		LzFactory fac = LzJVM.compile(genProg, 1);
 		System.out.println(fac);
 		
 		LzExpression expr = fac.instantiate(vm);
 		System.out.println(expr);
 		
+		LzProgram prog = new LzProgram(genProg);
 		LzProgramStack pStack = prog.info
 				.mallocStack(1)
 				.fillArgs(x);
@@ -115,10 +117,6 @@ public class TestLzVM
 		for(int i = 0; i < 8192; i++) expr.get(x);
 		
 		System.out.println(prog.body.disassemble(true));
-		
-		System.out.println();
-		System.out.println("Real: " + realValue);
-		System.out.println();
 		
 		System.out.println();
 		System.out.println("Eval: " + vm.eval(prog, pStack));
