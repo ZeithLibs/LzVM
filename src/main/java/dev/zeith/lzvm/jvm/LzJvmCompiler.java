@@ -27,21 +27,18 @@ public class LzJvmCompiler
 	public static final String L_LzCallOp = "L" + LzCallOp + ";";
 	public static final String L_LzGenerated = "L" + LzGenerated + ";";
 	
-	@SuppressWarnings("deprecation") // methodCall is not actually deprecated,
-	private static MethodInsnNode mCall(final int opcode, final String owner, final String name, final String descriptor)
-	{
-		return new MethodInsnNode(opcode, owner, name, descriptor);
-	}
-	
+	private LzJcallShutter jcallShutter = LzJcallShutter.ALLOW_EVERYTHING;
 	public boolean generatedAnnotation = false;
 	
-	private void tryPop(int i, int op, Stack<ArgType> stack, ArgType expect)
+	public LzJvmCompiler addJCallShutter(LzJcallShutter shutter)
 	{
-		if(stack.isEmpty())
-			throw new LzVMStackUnderflowException(LzOpcodes.opNameIndexed(i, op) + " expected " + expect.desc + " on the stack, but stack is empty.");
-		ArgType popped = stack.pop();
-		if(popped != expect)
-			throw new LzVMException(LzOpcodes.opNameIndexed(i, op) + " expected " + expect.desc + " on the stack, but got " + popped.desc + ".");
+		if(jcallShutter == LzJcallShutter.ALLOW_EVERYTHING)
+		{
+			jcallShutter = shutter;
+			return this;
+		}
+		jcallShutter = jcallShutter.and(shutter);
+		return this;
 	}
 	
 	public byte[] compile(String name, LzProgramBody body, int argCount)
@@ -151,7 +148,7 @@ public class LzJvmCompiler
 		Set<Integer> usedLocals = new HashSet<>();
 		
 		final AtomicInteger labelIndex = new AtomicInteger();
-		body.visitOps(false, (opcode, args) ->
+		body.visitOps(false, (index, opcode, args) ->
 				{
 					if(opcode == LzOpcodes.LABEL)
 						labelMap.put(labelIndex.getAndIncrement(), new LabelNode());
@@ -245,6 +242,9 @@ public class LzJvmCompiler
 					String owner = body.sConstTable[code[++i]];
 					LzCallInsn call = body.callTable[code[++i]];
 					
+					if(jcallShutter != LzJcallShutter.ALLOW_EVERYTHING && !jcallShutter.permits(owner.replace('/', '.'), call))
+						throw new LzVMCallNotFoundException(LzOpcodes.opNameIndexed(i, op) + ": jcall was not allowed by the compiler's jcall shutter.");
+					
 					insn.add(mCall(
 							INVOKESTATIC,
 							owner.replace('.', '/'),
@@ -257,7 +257,8 @@ public class LzJvmCompiler
 						ArgType pop = stack.pop();
 						ArgType expect = call.argTypes[call.argCount - 1 - j];
 						if(pop != expect)
-							throw new LzVMCallNotFoundException(LzOpcodes.opNameIndexed(i, op) + ": Invalid jcall signature. Expected " + expect.desc + " in " + call.descriptor + " but argument " + j + " was " + pop.desc);
+							throw new LzVMCallNotFoundException(
+									LzOpcodes.opNameIndexed(i, op) + ": Invalid jcall signature. Expected " + expect.desc + " in " + call.descriptor + " but argument " + j + " was " + pop.desc);
 					}
 					
 					stack.push(call.returnType);
@@ -292,7 +293,8 @@ public class LzJvmCompiler
 						ArgType pop = stack.pop();
 						ArgType expect = call.argTypes[j];
 						if(pop != expect)
-							throw new LzVMCallNotFoundException(LzOpcodes.opNameIndexed(i, op) + ": Invalid call signature. Expected " + expect.desc + " in " + call.descriptor + " but argument " + j + " was " + pop.desc);
+							throw new LzVMCallNotFoundException(
+									LzOpcodes.opNameIndexed(i, op) + ": Invalid call signature. Expected " + expect.desc + " in " + call.descriptor + " but argument " + j + " was " + pop.desc);
 					}
 					
 					stack.push(call.returnType);
@@ -861,5 +863,20 @@ public class LzJvmCompiler
 			insn.add(new IntInsnNode(SIPUSH, v));
 		else
 			insn.add(new LdcInsnNode(v));
+	}
+	
+	@SuppressWarnings("deprecation") // methodCall is not actually deprecated,
+	private static MethodInsnNode mCall(final int opcode, final String owner, final String name, final String descriptor)
+	{
+		return new MethodInsnNode(opcode, owner, name, descriptor);
+	}
+	
+	private void tryPop(int i, int op, Stack<ArgType> stack, ArgType expect)
+	{
+		if(stack.isEmpty())
+			throw new LzVMStackUnderflowException(LzOpcodes.opNameIndexed(i, op) + " expected " + expect.desc + " on the stack, but stack is empty.");
+		ArgType popped = stack.pop();
+		if(popped != expect)
+			throw new LzVMException(LzOpcodes.opNameIndexed(i, op) + " expected " + expect.desc + " on the stack, but got " + popped.desc + ".");
 	}
 }

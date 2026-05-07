@@ -25,17 +25,18 @@ public class LzProgramBody
 		for(int i = 0; i < insnList.length; i++)
 		{
 			int ins = insnList[i];
+			final int j = i;
 			int extra = LzOpcodes.EXTRA_SHIFTS[ins];
 			Object[] args = skipArgs || extra == 0 ? EMPTY_ARGS : new Object[extra];
 			if(!skipArgs)
 			{
-				for(int j = 0; j < extra; j++)
+				for(int k = 0; k < extra; k++)
 				{
 					int v = insnList[++i];
-					args[j] = getConstant(ins, j, v);
+					args[k] = getConstant(ins, k, v);
 				}
 			} else i += extra;
-			visitor.visitInstruction(ins, args);
+			visitor.visitInstruction(j, ins, args);
 		}
 	}
 	
@@ -47,7 +48,7 @@ public class LzProgramBody
 		StringBuilder sb = new StringBuilder();
 		String insnSuffix = newlines ? "\n" : "; ";
 		
-		visitOps(false, (opcode, args) ->
+		visitOps(false, (index, opcode, args) ->
 				{
 					sb.append(LzOpcodes.NAME_OF.get(opcode));
 					for(Object arg : args)
@@ -126,9 +127,9 @@ public class LzProgramBody
 				}
 				break;
 				default:
+					ptr += shift;
 					break;
 			}
-			ptr += shift;
 			maxStackPos = Math.max(maxStackPos, ptr);
 		}
 		

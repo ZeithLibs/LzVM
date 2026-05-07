@@ -1,4 +1,4 @@
-import dev.zeith.lzvm.LzVM;
+import dev.zeith.lzvm.*;
 import dev.zeith.lzvm.jvm.*;
 import dev.zeith.lzvm.molang.compiler.MoLangCompiler;
 import dev.zeith.lzvm.molang.compiler.libs.MoMathLibrary;
@@ -32,25 +32,22 @@ public class TestMoLang
 		{
 			throw new RuntimeException(e);
 		}
+
+//		Tokenizer tokenizer = new Tokenizer();
+//		tokenizer.init(expression);
+//		while(tokenizer.hasNext()) System.out.println("TOKEN: " + tokenizer.next());
 		
-		Tokenizer tokenizer = new Tokenizer();
-		tokenizer.init(expression);
-		while(tokenizer.hasNext())
-		{
-			System.out.println("TOKEN: " + tokenizer.next());
-		}
-		
-		LzVM vm = new LzVM();
+		LzVMVariableStore vars = new LzVMVariableStore();
 		double[] time = new double[1];
-		vm.registerVar("query.anim_time", LzVarOp.readOnly(() -> time[0]));
-		vm.registerVar("variable.test", LzVarOp.readWrite());
-		vm.registerVar("variable.test2", LzVarOp.readWrite());
+		vars.registerVar("query.anim_time", LzVarOp.readOnly(() -> time[0]));
+		vars.registerVar("variable.test", LzVarOp.readWrite());
+		vars.registerVar("variable.test2", LzVarOp.readWrite());
 		
 		MoLangCompiler compiler = new MoLangCompiler();
 		compiler.linkLibrary(MoMathLibrary.INSTANCE);
 		
-		ArrayList<MLExpression> expressions = compiler.parse(expression, true);
-		LzProgramBody compiledProgram = compiler.compile(0, expressions);
+		ArrayList<MLExpression> expressions = compiler.parse(expression);
+		LzProgramBody compiledProgram = compiler.compile(expressions);
 		LzProgramBody body = compiledProgram;
 		
 		LzJvmCompiler jvmc = new LzJvmCompiler();
@@ -89,20 +86,22 @@ public class TestMoLang
 		}
 		jvmc.generatedAnnotation = false;
 		
-		LzFactory fact = compiler.parseFactory(jvmc, expression, 0, new LzJVM.LzClassLoader());
-		LzExpression expr = fact.instantiate(vm);
+		LzFactory fact = compiler.parseFactory(jvmc, expression, new LzJVM.LzClassLoader());
+		LzExpression expr = fact.instantiate(vars);
 		
 		long start = System.currentTimeMillis();
 		double lastLog = -10;
 		
 		LzProgramStack stack = compiledProgram.computeInfo().mallocStack(0);
 		
+		LzVM vm = new LzVM();
+		
 		while(true)
 		{
 			double elapsed = (System.currentTimeMillis() - start) / 1000D;
 			if(elapsed > 5) break;
 			double val = expr.get();
-			double val2 = vm.interpret(compiledProgram, stack);
+			double val2 = vm.interpret(vars, compiledProgram, stack);
 			time[0] = elapsed;
 			if(elapsed - lastLog >= 0.25)
 			{

@@ -1,4 +1,4 @@
-import dev.zeith.lzvm.LzVM;
+import dev.zeith.lzvm.*;
 import dev.zeith.lzvm.jvm.*;
 import dev.zeith.lzvm.op.*;
 import dev.zeith.lzvm.program.*;
@@ -82,7 +82,8 @@ public class TestLzVM
 	
 	public static void main(String[] args)
 	{
-		LzVM vm = createMoLangVM();
+		LzVariableStore vars = createVarStore();
+		LzVM vm = new LzVM();
 		
 		double x = 8;
 		
@@ -105,7 +106,7 @@ public class TestLzVM
 		LzFactory fac = LzJVM.compile(jvmc, genProg, 1, new LzJVM.LzClassLoader());
 		System.out.println(fac);
 		
-		LzExpression expr = fac.instantiate(vm);
+		LzExpression expr = fac.instantiate(vars);
 		System.out.println(expr);
 		
 		LzProgram prog = new LzProgram("TestProgram", genProg);
@@ -113,19 +114,19 @@ public class TestLzVM
 				.mallocStack(1)
 				.fillArgs(x);
 		
-		System.out.println("Coldboot Eval: " + vm.interpret(prog, pStack));
+		System.out.println("Coldboot Eval: " + vm.interpret(vars, prog, pStack));
 		System.out.println("Coldboot Java: " + expr.get(x));
 		
-		for(int i = 0; i < 8192; i++) vm.interpret(prog, pStack);
+		for(int i = 0; i < 8192; i++) vm.interpret(vars, prog, pStack);
 		for(int i = 0; i < 8192; i++) expr.get(x);
 		
 		System.out.println(prog.body.disassemble(true));
 		
 		System.out.println();
-		System.out.println("Interpret: " + vm.interpret(prog, pStack));
+		System.out.println("Interpret: " + vm.interpret(vars, prog, pStack));
 		System.out.println();
 		
-		benchmark(() -> vm.interpret(prog, pStack));
+		benchmark(() -> vm.interpret(vars, prog, pStack));
 		
 		System.out.println();
 		System.out.println("Java: " + expr.get(x));
@@ -164,9 +165,9 @@ public class TestLzVM
 		System.out.println("INSTANT (0 ns): " + instantComputes + " / " + runs + " RUNS (" + ((instantComputes * 1000L / runs) / 10D) + "%)");
 	}
 	
-	private static LzVM createMoLangVM()
+	private static LzVMVariableStore createVarStore()
 	{
-		LzVM vm = new LzVM();
+		LzVMVariableStore vm = new LzVMVariableStore();
 		
 		vm.registerCall(MATH_SIN,
 				moArgs -> Math.sin(Math.toRadians((double) moArgs[0]))

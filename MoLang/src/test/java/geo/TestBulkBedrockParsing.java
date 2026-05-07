@@ -1,9 +1,10 @@
+package geo;
+
 import com.google.gson.*;
 import dev.zeith.lzvm.LzVariableStore;
 import dev.zeith.lzvm.jvm.*;
 import dev.zeith.lzvm.molang.compiler.MoLangCompiler;
 import dev.zeith.lzvm.op.*;
-import geo.*;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -101,13 +102,13 @@ public class TestBulkBedrockParsing
 			counter.incrementAndGet();
 			try
 			{
-//				compiler.compile(0, compiler.parse(ml, true));
-				LzFactory lzf = compiler.parseFactory(jvmCompiler, ml, 0, new LzJVM.LzClassLoader());
-//				LzExpression expr = lzf.instantiate(STORE);
-//				boolean constant = false;
-//				if(expr instanceof LzExpression.ConstantExpression) constant = true;
-//				expr.get();
-//				System.out.println(ml + " = " + expr.get() + (constant ? " (CONST)" : ""));
+//				compiler.compile(0, compiler.parse(ml));
+				LzFactory lzf = compiler.parseFactory(jvmCompiler, ml,  new LzJVM.LzClassLoader());
+				LzExpression expr = lzf.instantiate(STORE);
+				boolean constant = false;
+				if(expr instanceof LzExpression.ConstantExpression) constant = true;
+				expr.get();
+				System.out.println(ml + " = " + expr.get() + (constant ? " (CONST)" : ""));
 			} catch(Exception e)
 			{
 				e.printStackTrace();

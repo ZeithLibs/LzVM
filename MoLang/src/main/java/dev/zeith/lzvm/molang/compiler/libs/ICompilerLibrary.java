@@ -12,10 +12,10 @@ public interface ICompilerLibrary
 	
 	default IMoFunctionCallTransformer argsAndExtraPure(Function<FuncCallExpression, MLExpression> optimizer, Consumer<LzProgramBuilder> extra)
 	{
-		return argsAndExtra(true, extra, optimizer);
+		return argsAndExtra(true, optimizer, extra);
 	}
 	
-	default IMoFunctionCallTransformer argsAndExtra(boolean pure, Consumer<LzProgramBuilder> extra, Function<FuncCallExpression, MLExpression> optimizer)
+	default IMoFunctionCallTransformer argsAndExtra(boolean pure, Function<FuncCallExpression, MLExpression> optimizer, Consumer<LzProgramBuilder> extra)
 	{
 		return new IMoFunctionCallTransformer()
 		{

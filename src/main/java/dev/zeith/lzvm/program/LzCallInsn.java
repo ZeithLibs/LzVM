@@ -2,6 +2,7 @@ package dev.zeith.lzvm.program;
 
 import lombok.*;
 
+@Getter
 @EqualsAndHashCode
 public class LzCallInsn
 {
@@ -26,7 +27,7 @@ public class LzCallInsn
 	@Override
 	public String toString()
 	{
-		return "LzCallInsn{" + descriptor + "}";
+		return "LzCallInsn{" + name + descriptor + "}";
 	}
 	
 	public static LzCallInsn ofDbl(String name, ArgType... argTypes)

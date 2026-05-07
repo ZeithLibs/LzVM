@@ -1,5 +1,6 @@
 package dev.zeith.lzvm.molang.expression;
 
+import dev.zeith.lzvm.exception.LzVMException;
 import dev.zeith.lzvm.molang.compiler.*;
 import dev.zeith.lzvm.program.*;
 
@@ -47,7 +48,7 @@ public class FuncCallExpression
 		LzCallInsn call = determineCallDesc();
 		
 		// Potentially transform things like math.sin to convert degrees to radians first and then call optimized fsin instruction:
-		IMoFunctionCallTransformer trf = compiler.findTransformer(call);
+		IMoFunctionCallTransformer trf = compiler.findCallTransformer(call);
 		if(trf != null && trf.appendCall(compiler, builder, this, call, scope)) return;
 		
 		// Standard approach
@@ -63,9 +64,15 @@ public class FuncCallExpression
 		LzCallInsn call = determineCallDesc();
 		
 		// Potentially transform things like math.sin to convert degrees to radians first and then call optimized fsin instruction:
-		IMoFunctionCallTransformer trf = compiler.findTransformer(call);
+		IMoFunctionCallTransformer trf = compiler.findCallTransformer(call);
 		
-		return trf != null && trf.isPure() ? trf.optimizeCall(compiler, this, call) : this;
+		try
+		{
+			return trf != null && trf.isPure() ? trf.optimizeCall(compiler, this, call) : this;
+		} catch(Exception e)
+		{
+			throw new LzVMException("Failed to optimize " + this, e);
+		}
 	}
 	
 	@Override

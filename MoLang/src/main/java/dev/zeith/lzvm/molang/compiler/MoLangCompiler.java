@@ -9,11 +9,15 @@ import dev.zeith.lzvm.op.LzOpcodes;
 import dev.zeith.lzvm.program.*;
 
 import java.util.*;
+import java.util.function.Function;
 
 public class MoLangCompiler
 {
-	protected final Map<LzCallInsn, IMoFunctionCallTransformer> transformers = new HashMap<>();
+	protected final Map<String, Function<NameExpression, MLExpression>> nameTransformers = new HashMap<>();
+	protected final Map<LzCallInsn, IMoFunctionCallTransformer> callTransformers = new HashMap<>();
 	protected final Map<String, String> aliases = new HashMap<>();
+	
+	public boolean optimize = true;
 	
 	public MoLangCompiler()
 	{
@@ -24,19 +28,19 @@ public class MoLangCompiler
 		registerAlias("c", "context");
 	}
 	
-	public static LzCallInsn doubleUnaryOperator(String name)
+	public static LzCallInsn dUnaryOperator(String name)
 	{
-		return new LzCallInsn(name, ArgType.DOUBLE, ArgType.DOUBLE);
+		return LzCallInsn.ofDbl(name, ArgType.DOUBLE);
 	}
 	
-	public static LzCallInsn doubleBinaryOperator(String name)
+	public static LzCallInsn dBinaryOperator(String name)
 	{
-		return new LzCallInsn(name, ArgType.DOUBLE, ArgType.DOUBLE, ArgType.DOUBLE);
+		return LzCallInsn.ofDbl(name, ArgType.DOUBLE, ArgType.DOUBLE);
 	}
 	
-	public static LzCallInsn doubleTernaryOperator(String name)
+	public static LzCallInsn dTernaryOperator(String name)
 	{
-		return new LzCallInsn(name, ArgType.DOUBLE, ArgType.DOUBLE, ArgType.DOUBLE);
+		return LzCallInsn.ofDbl(name, ArgType.DOUBLE, ArgType.DOUBLE, ArgType.DOUBLE);
 	}
 	
 	public MoLangCompiler registerAlias(String alias, String origin)
@@ -53,36 +57,54 @@ public class MoLangCompiler
 	
 	public MoLangCompiler registerTransformer(LzCallInsn call, IMoFunctionCallTransformer transformer)
 	{
-		transformers.put(call, transformer);
+		callTransformers.put(call, transformer);
 		return this;
 	}
 	
-	public IMoFunctionCallTransformer findTransformer(LzCallInsn call)
+	public MoLangCompiler registerName(String name, Function<NameExpression, MLExpression> transformer)
 	{
-		return transformers.get(call);
+		nameTransformers.put(name, transformer);
+		return this;
 	}
 	
-	public LzFactory parseFactory(LzJvmCompiler compiler, String expression, int inArgs, IClassDefiner definer)
+	public IMoFunctionCallTransformer findCallTransformer(LzCallInsn call)
 	{
-		ArrayList<MLExpression> parsed = parse(expression, true);
+		return callTransformers.get(call);
+	}
+	
+	public MLExpression findNameTransformer(NameExpression nex)
+	{
+		Function<NameExpression, MLExpression> n = nameTransformers.get(nex.name);
+		if(n != null) return n.apply(nex);
+		return nex;
+	}
+	
+	public LzFactory parseFactory(LzJvmCompiler compiler, String expression, IClassDefiner definer)
+	{
+		ArrayList<MLExpression> parsed = parse(expression);
 		if(parsed.size() == 1)
 		{
 			OptionalDouble exp = parsed.get(0).asOptimizedDouble();
 			if(exp.isPresent())
 				return new LzExpression.ConstantExpression(exp.getAsDouble());
 		}
-		return LzJVM.compile(compiler, compile(inArgs, parsed), inArgs, definer);
+		return LzJVM.compile(compiler, compile(parsed), 0, definer);
 	}
 	
-	public LzProgramBody compile(int inArgs, ArrayList<MLExpression> expression)
+	public LzProgramBody parseAndCompile(String expression)
 	{
-		LzProgramBuilder pb = LzProgramBuilder.of(inArgs);
+		return compile(parse(expression));
+	}
+	
+	public LzProgramBody compile(ArrayList<MLExpression> expression)
+	{
+		LzProgramBuilder pb = LzProgramBuilder.of(0);
 		for(MLExpression expr : expression) expr.toLz(this, pb, ExpressionScope.EMPTY);
 		pb.addInsn(LzOpcodes.RETURN);
 		return pb.build();
 	}
 	
-	public ArrayList<MLExpression> parse(String expression, boolean optimize)
+	public ArrayList<MLExpression> parse(String expression)
 	{
 		Tokenizer tkn = new Tokenizer();
 		tkn.init(expression);

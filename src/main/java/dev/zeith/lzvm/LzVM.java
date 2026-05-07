@@ -1,7 +1,7 @@
 package dev.zeith.lzvm;
 
 import dev.zeith.lzvm.exception.*;
-import dev.zeith.lzvm.jvm.LzMath;
+import dev.zeith.lzvm.jvm.*;
 import dev.zeith.lzvm.op.*;
 import dev.zeith.lzvm.program.*;
 
@@ -11,13 +11,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 public class LzVM
-		implements LzVariableStore
 {
-	protected final Map<String, LzCallOp> callRegister = new HashMap<>();
-	protected final Map<String, LzVarOp> varRegister = new HashMap<>();
-	
 	protected final ClassLoader loader;
 	protected final Map<String, Map<LzCallInsn, Optional<Method>>> jvmCache = new ConcurrentHashMap<>();
+	private LzJcallShutter jcallShutter = LzJcallShutter.ALLOW_EVERYTHING;
 	
 	public LzVM(ClassLoader loader)
 	{
@@ -27,6 +24,17 @@ public class LzVM
 	public LzVM()
 	{
 		this(Thread.currentThread().getContextClassLoader());
+	}
+	
+	public LzVM addJCallShutter(LzJcallShutter shutter)
+	{
+		if(jcallShutter == LzJcallShutter.ALLOW_EVERYTHING)
+		{
+			jcallShutter = shutter;
+			return this;
+		}
+		jcallShutter = jcallShutter.and(shutter);
+		return this;
 	}
 	
 	protected Method findMethod(String owner, LzCallInsn call)
@@ -47,25 +55,23 @@ public class LzVM
 		).orElse(null);
 	}
 	
-	public LzVM registerCall(LzCallInsn name, LzCallOp op)
-	{
-		callRegister.put(name.name + name.descriptor, op);
-		return this;
-	}
-	
-	public LzVM registerVar(String name, LzVarOp op)
-	{
-		varRegister.put(name, op);
-		return this;
-	}
-	
-	public double interpret(LzProgram program, LzProgramStack stack)
+	public double interpret(LzVariableStore vars, LzProgram program, double... args)
 			throws LzVMException
 	{
-		return interpret(program.body, stack);
+		LzProgramStack stack = program.info.mallocStack(args.length);
+		Object[] a = new Object[args.length];
+		for(int i = 0; i < args.length; i++) a[i] = args[i];
+		stack.fillArgs(a);
+		return interpret(vars, program.body, stack);
 	}
 	
-	public double interpret(LzProgramBody program, LzProgramStack pStack)
+	public double interpret(LzVariableStore vars, LzProgram program, LzProgramStack stack)
+			throws LzVMException
+	{
+		return interpret(vars, program.body, stack);
+	}
+	
+	public double interpret(LzVariableStore vars, LzProgramBody program, LzProgramStack pStack)
 			throws LzVMException
 	{
 		int[] insn = program.insnList;
@@ -79,46 +85,72 @@ public class LzVM
 		Map<String, LzVarOp> varCache = new HashMap<>();
 		Function<String, LzVarOp> fetchVar = name ->
 		{
-			if(name.startsWith("temp.")) return tempVar(name);
-			return findVar(name);
+			if(name.startsWith("temp.")) return vars.tempVar(name);
+			return vars.findVar(name);
 		};
 		Function<String, LzVarOp> getVar = n -> varCache.computeIfAbsent(n, fetchVar);
 		
 		List<Integer> labelCords = new ArrayList<>();
-		for(int i = 0; i < insn.length; i++)
-		{
-			int instr = insn[i];
-			i += LzOpcodes.EXTRA_SHIFTS[instr];
-			if(instr == LzOpcodes.LABEL) labelCords.add(i);
-		}
+		program.visitOps(true, (index, opcode, args) ->
+				{
+					if(opcode == LzOpcodes.LABEL)
+						labelCords.add(index);
+				}
+		);
 		
 		int ptr = -1;
 		
 		String vinsn = null;
 		LzCallInsn cinsn = null;
-		int i = 0, state = -1, expect = 0;
+		int i = 0, op = -1, expect = 0;
 		try
 		{
 			for(; i < insn.length; i++)
 			{
-				state = insn[i];
-				switch(state)
+				op = insn[i];
+				switch(op)
 				{
 					case LzOpcodes.RETURN:
 						return ptr < 0 ? 0.0 : coerce(stack[ptr]);
 					case LzOpcodes.CONST:
-						stack[++ptr] = consts[insn[++i]]; break;
+					{
+						double val = consts[insn[++i]];
+						try
+						{
+							stack[++ptr] = val;
+						} catch(ArrayIndexOutOfBoundsException e)
+						{
+							throw new LzVMStackOverflowException(LzOpcodes.opNameIndexed(i, op) + ": attempted to store stack @ " + ptr);
+						}
+						break;
+					}
 					case LzOpcodes.SCONST:
-						stack[++ptr] = sConsts[insn[++i]]; break;
+					{
+						String val = sConsts[insn[++i]];
+						stack[++ptr] = val;
+						break;
+					}
 					case LzOpcodes.LOAD:
-						stack[++ptr] = locals[insn[++i]]; break;
+					{
+						Object val = locals[insn[++i]];
+						stack[++ptr] = val;
+						break;
+					}
 					case LzOpcodes.STORE:
-						locals[insn[++i]] = stack[ptr--]; break;
+					{
+						Object val = stack[ptr--];
+						locals[insn[++i]] = val;
+						break;
+					}
 					
 					case LzOpcodes.JCALL:
 					{
 						String owner = vinsn = sConsts[insn[++i]];
 						cinsn = callTable[insn[++i]];
+						
+						if(jcallShutter != LzJcallShutter.ALLOW_EVERYTHING && !jcallShutter.permits(owner.replace('/', '.'), cinsn))
+							throw new LzVMCallNotFoundException(LzOpcodes.opNameIndexed(i, op) + ": jcall was not allowed by the interpret jcall shutter.");
+						
 						Method method = findMethod(owner, cinsn);
 						Object[] capturedArgs = new Object[cinsn.argCount];
 						expect = capturedArgs.length;
@@ -137,7 +169,7 @@ public class LzVM
 					{
 						int callIdx = insn[++i];
 						cinsn = callTable[callIdx];
-						LzCallOp call = findCallByName(cinsn);
+						LzCallOp call = vars.findCallByName(cinsn);
 						Object[] capturedArgs = new Object[cinsn.argCount];
 						expect = capturedArgs.length;
 						for(int j = capturedArgs.length - 1; j >= 0; --j) capturedArgs[j] = stack[ptr--];
@@ -163,7 +195,7 @@ public class LzVM
 						expect = 2;
 						double right = coerce(stack[ptr--]);
 						double left = coerce(stack[ptr--]);
-						stack[++ptr] = LzBinaryOp.byOpcode(state).operate(left, right);
+						stack[++ptr] = LzBinaryOp.byOpcode(op).operate(left, right);
 					}
 					break;
 					case LzOpcodes.NOT:
@@ -261,21 +293,21 @@ public class LzVM
 					break;
 					
 					default:
-						throw new LzVMOperationNotSupportedException("Unknown opcode: " + LzOpcodes.opNameIndexed(i, state));
+						throw new LzVMOperationNotSupportedException("Unknown opcode: " + LzOpcodes.opNameIndexed(i, op));
 				}
 			}
 		} catch(ArrayIndexOutOfBoundsException e)
 		{
 			if(ptr < 0)
-				throw new LzVMStackUnderflowException(LzOpcodes.opNameIndexed(i, state) + " expected " + expect + " arguments on the stack.", e);
-			throw e;
+				throw new LzVMStackUnderflowException(LzOpcodes.opNameIndexed(i, op) + " expected " + expect + " arguments on the stack.", e);
+			throw new LzVMException(LzOpcodes.opNameIndexed(i, op) + " failed to execute.", e);
 		} catch(NullPointerException e)
 		{
-			if(cinsn != null && state == LzOpcodes.CALL)
+			if(cinsn != null && op == LzOpcodes.CALL)
 				throw new LzVMCallNotFoundException("Could not find call " + cinsn.name + cinsn.descriptor + " with " + cinsn.argCount + " arguments.", e);
-			if(cinsn != null && state == LzOpcodes.JCALL)
+			if(cinsn != null && op == LzOpcodes.JCALL)
 				throw new LzVMCallNotFoundException("Could not find jvm call " + vinsn.replace('/', '.') + "." + cinsn.name + cinsn.descriptor + " with " + cinsn.argCount + " arguments.", e);
-			if(vinsn != null && (state == LzOpcodes.READ || state == LzOpcodes.WRITE))
+			if(vinsn != null && (op == LzOpcodes.READ || op == LzOpcodes.WRITE))
 				throw new LzVMCallNotFoundException("Could not find var " + vinsn, e);
 			throw e;
 		}
@@ -286,28 +318,5 @@ public class LzVM
 	public static double coerce(Object obj)
 	{
 		return obj instanceof Number ? ((Number) obj).doubleValue() : (obj != null ? 1.0 : 0.0);
-	}
-	
-	public LzCallOp findCallByName(LzCallInsn insn)
-	{
-		return findCall(insn.name, insn.descriptor);
-	}
-	
-	@Override
-	public LzCallOp findCall(String name, String descriptor)
-	{
-		return callRegister.getOrDefault(name + descriptor, LzCallOp.NO_OP);
-	}
-	
-	@Override
-	public LzVarOp findVar(String name)
-	{
-		return varRegister.getOrDefault(name, LzVarOp.ZERO);
-	}
-	
-	@Override
-	public LzVarOp tempVar(String name)
-	{
-		return LzVarOp.readWrite();
 	}
 }

@@ -48,8 +48,8 @@ public abstract class MLExpression
 			MLExpression child = children[i];
 			if(child != null)
 			{
-				child = child.optimizeStatic(compiler);
-				if(child.isOptimized()) children[i] = child;
+				MLExpression optChild = child.optimizeStatic(compiler);
+				if(child != optChild) children[i] = optChild;
 			}
 		}
 		if(getExpectedLzType() == ArgType.DOUBLE)

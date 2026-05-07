@@ -34,7 +34,9 @@ public class NameExpression
 	@Override
 	public void toLz(MoLangCompiler compiler, LzProgramBuilder builder, ExpressionScope scope)
 	{
-		builder.addRead(this.name);
+		MLExpression tf = compiler.findNameTransformer(this);
+		if(tf != this) tf.toLz(compiler, builder, scope);
+		else builder.addRead(this.name);
 	}
 	
 	@Override
@@ -48,5 +50,13 @@ public class NameExpression
 	{
 		whatToWrite.accept(builder);
 		builder.addWrite(this.name);
+	}
+	
+	@Override
+	public MLExpression optimizeStatic(MoLangCompiler compiler)
+	{
+		MLExpression tf = compiler.findNameTransformer(this);
+		if(tf != this) return tf;
+		return super.optimizeStatic(compiler);
 	}
 }
