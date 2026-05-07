@@ -16,7 +16,7 @@ public abstract class LzReader
 	
 	public LzReader(InputStream stream)
 	{
-		this.stream = new DataInputStream(stream);
+		this.stream = stream instanceof DataInputStream ? (DataInputStream) stream : new DataInputStream(stream);
 		setup();
 	}
 	

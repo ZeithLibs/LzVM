@@ -17,7 +17,7 @@ public class Tokenizer
 	
 	public void init(String expression)
 	{
-		expression = ExpressionFixer.fixExpression(expression);
+		expression = !expression.isEmpty() ? ExpressionFixer.fixExpression(expression) : expression;
 		
 		this.currentLine = 0;
 		this.pos = 0;

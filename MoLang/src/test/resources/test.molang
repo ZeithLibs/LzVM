@@ -1,0 +1,11 @@
+t.test = 0;
+
+loop(q.anim_time  * 4, {
+    ++t.test;
+    t.test > 2 && t.test < 6 ?: continue;
+    t.test >= 10 ? break;
+});
+
+v.my_var[1] = t.test && (q.anim_time % 2);
+
+return t.test;

@@ -2,27 +2,27 @@ package dev.zeith.lzvm.molang.expression;
 
 import dev.zeith.lzvm.molang.compiler.MoLangCompiler;
 import dev.zeith.lzvm.program.*;
-import lombok.ToString;
 
 import java.util.function.Consumer;
 
-@ToString
-public class NameExpression
+public class ArrayExpression
 		extends MLExpression
 		implements IVarAccessExpression
 {
 	public final String name;
 	
-	public NameExpression(String name)
+	public ArrayExpression(NameExpression varName, MLExpression index)
 	{
-		super(0);
-		this.name = name;
+		super(2);
+		this.name = varName.name;
+		this.children[0] = varName;
+		this.children[1] = index;
 	}
 	
 	@Override
-	protected boolean isOptimized()
+	public MLExpression optimizeStatic(MoLangCompiler compiler)
 	{
-		return false;
+		return super.optimizeStatic(compiler);
 	}
 	
 	@Override
@@ -34,7 +34,8 @@ public class NameExpression
 	@Override
 	public void toLz(MoLangCompiler compiler, LzProgramBuilder builder, ExpressionScope scope)
 	{
-		builder.addRead(this.name);
+		this.children[1].toLz(compiler, builder, scope);
+		builder.addArrayRead(name);
 	}
 	
 	@Override
@@ -46,7 +47,12 @@ public class NameExpression
 	@Override
 	public void addWrite(MoLangCompiler compiler, LzProgramBuilder builder, ExpressionScope scope, Consumer<LzProgramBuilder> whatToWrite)
 	{
+		// Push index onto the stack first
+		this.children[1].toLz(compiler, builder, scope);
+		
+		// Push value onto the stack
 		whatToWrite.accept(builder);
-		builder.addWrite(this.name);
+		
+		builder.addArrayWrite(name);
 	}
 }

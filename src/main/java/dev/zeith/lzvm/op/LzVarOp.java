@@ -66,6 +66,16 @@ public interface LzVarOp
 	void set(double value)
 			throws LzVMOperationNotSupportedException;
 	
+	default double get(double index)
+	{
+		throw new LzVMOperationNotSupportedException();
+	}
+	
+	default void set(double index, double value)
+	{
+		throw new LzVMOperationNotSupportedException();
+	}
+	
 	interface ReadonlyLzVarOp
 			extends LzVarOp
 	{

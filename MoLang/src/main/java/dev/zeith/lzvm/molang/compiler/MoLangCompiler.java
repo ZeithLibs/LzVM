@@ -12,8 +12,6 @@ import java.util.*;
 
 public class MoLangCompiler
 {
-	private static final ThreadLocal<Tokenizer> TOKENIZER = ThreadLocal.withInitial(Tokenizer::new);
-	
 	protected final Map<LzCallInsn, IMoFunctionCallTransformer> transformers = new HashMap<>();
 	protected final Map<String, String> aliases = new HashMap<>();
 	
@@ -86,7 +84,7 @@ public class MoLangCompiler
 	
 	public ArrayList<MLExpression> parse(String expression, boolean optimize)
 	{
-		Tokenizer tkn = TOKENIZER.get();
+		Tokenizer tkn = new Tokenizer();
 		tkn.init(expression);
 		MoParser p = new MoParser(this.aliases, tkn);
 		ArrayList<MLExpression> exprs = p.parse();

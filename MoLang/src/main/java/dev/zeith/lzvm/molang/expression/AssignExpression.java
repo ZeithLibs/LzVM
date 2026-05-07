@@ -6,13 +6,14 @@ import dev.zeith.lzvm.program.*;
 public class AssignExpression
 		extends MLExpression
 {
-	protected final NameExpression name;
+	protected final IVarAccessExpression name;
 	
-	public AssignExpression(NameExpression name, MLExpression value)
+	public AssignExpression(IVarAccessExpression name, MLExpression value)
 	{
-		super(1);
+		super(2);
 		this.name = name;
-		this.children[0] = value;
+		this.children[0] = (MLExpression) name;
+		this.children[1] = value;
 	}
 	
 	@Override
@@ -24,11 +25,11 @@ public class AssignExpression
 	@Override
 	public void toLz(MoLangCompiler compiler, LzProgramBuilder builder, ExpressionScope scope)
 	{
-		// Push the value onto the stack
-		this.children[0].toLz(compiler, builder, scope);
-		
 		// Write value onto the stack
-		builder.addWrite(name.name);
+		name.addWrite(compiler, builder, scope, (b) ->
+				// Push the value onto the stack
+				this.children[1].toLz(compiler, b, scope)
+		);
 	}
 	
 	@Override

@@ -59,13 +59,13 @@ public class LzVM
 		return this;
 	}
 	
-	public double eval(LzProgram program, LzProgramStack stack)
+	public double interpret(LzProgram program, LzProgramStack stack)
 			throws LzVMException
 	{
-		return eval(program.body, stack);
+		return interpret(program.body, stack);
 	}
 	
-	public double eval(LzProgramBody program, LzProgramStack pStack)
+	public double interpret(LzProgramBody program, LzProgramStack pStack)
 			throws LzVMException
 	{
 		int[] insn = program.insnList;
@@ -238,6 +238,25 @@ public class LzVM
 					case LzOpcodes.POP:
 					{
 						Object obj = stack[ptr--];
+					}
+					break;
+					
+					case LzOpcodes.READ_INDEXED:
+					{
+						double index = coerce(stack[ptr--]);
+						int varIdx = insn[++i];
+						vinsn = sConsts[varIdx];
+						stack[++ptr] = getVar.apply(vinsn).get(index);
+					}
+					break;
+					
+					case LzOpcodes.WRITE_INDEXED:
+					{
+						double index = coerce(stack[ptr--]);
+						expect = 1;
+						int varIdx = insn[++i];
+						vinsn = sConsts[varIdx];
+						getVar.apply(vinsn).set(index, coerce(stack[ptr--]));
 					}
 					break;
 					

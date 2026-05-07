@@ -1,12 +1,13 @@
 package dev.zeith.lzvm.jvm;
 
-import dev.zeith.lzvm.exception.LzVMCallNotFoundException;
+import dev.zeith.lzvm.exception.*;
 import dev.zeith.lzvm.op.LzOpcodes;
 import dev.zeith.lzvm.program.*;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.tree.*;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.*;
 
 import static org.objectweb.asm.Opcodes.*;
@@ -33,6 +34,15 @@ public class LzJvmCompiler
 	}
 	
 	public boolean generatedAnnotation = false;
+	
+	private void tryPop(int i, int op, Stack<ArgType> stack, ArgType expect)
+	{
+		if(stack.isEmpty())
+			throw new LzVMStackUnderflowException(LzOpcodes.opNameIndexed(i, op) + " expected " + expect.desc + " on the stack, but stack is empty.");
+		ArgType popped = stack.pop();
+		if(popped != expect)
+			throw new LzVMException(LzOpcodes.opNameIndexed(i, op) + " expected " + expect.desc + " on the stack, but got " + popped.desc + ".");
+	}
 	
 	public byte[] compile(String name, LzProgramBody body, int argCount)
 	{
@@ -138,15 +148,26 @@ public class LzJvmCompiler
 		int[] code = body.insnList;
 		
 		Map<Integer, LabelNode> labelMap = new HashMap<>();
+		Set<Integer> usedLocals = new HashSet<>();
 		
-		int labelIndex = 0;
-		for(int i = 0, insnLen = code.length; i < insnLen; i++)
+		final AtomicInteger labelIndex = new AtomicInteger();
+		body.visitOps(false, (opcode, args) ->
+				{
+					if(opcode == LzOpcodes.LABEL)
+						labelMap.put(labelIndex.getAndIncrement(), new LabelNode());
+					else if(opcode == LzOpcodes.LOAD || opcode == LzOpcodes.STORE)
+						usedLocals.add((int) args[0]);
+				}
+		);
+		labelIndex.set(0);
+		
+		IntSupplier newLocal = () ->
 		{
-			int instr = code[i];
-			i += LzOpcodes.EXTRA_SHIFTS[instr];
-			if(instr == LzOpcodes.LABEL) labelMap.put(labelIndex++, new LabelNode());
-		}
-		labelIndex = 0;
+			int local = argCount + 1 + usedLocals.size() * 2;
+			while(!usedLocals.add(local))
+				local++;
+			return local;
+		};
 		
 		Stack<ArgType> stack = new Stack<>();
 		
@@ -202,6 +223,8 @@ public class LzJvmCompiler
 				
 				case LzOpcodes.STORE:
 				{
+					tryPop(i, op, stack, ArgType.DOUBLE);
+					
 					int idx = code[++i];
 					if(/*useArray ||*/ idx < argCount)
 					{
@@ -214,8 +237,6 @@ public class LzJvmCompiler
 					{
 						insn.add(new VarInsnNode(DSTORE, 1 + idx));
 					}
-					
-					stack.pop();
 				}
 				break;
 				
@@ -231,11 +252,12 @@ public class LzJvmCompiler
 							call.jvmDescriptor
 					));
 					
-					for(int i1 = 0; i1 < call.argCount; i1++)
+					for(int j = 0; j < call.argCount; j++)
 					{
 						ArgType pop = stack.pop();
-						if(pop != call.argTypes[call.argCount - 1 - i1])
-							throw new LzVMCallNotFoundException("Invalid call signature @" + i + ". Expected " + call.descriptor + " but argument " + i1 + " was " + pop.desc);
+						ArgType expect = call.argTypes[call.argCount - 1 - j];
+						if(pop != expect)
+							throw new LzVMCallNotFoundException(LzOpcodes.opNameIndexed(i, op) + ": Invalid jcall signature. Expected " + expect.desc + " in " + call.descriptor + " but argument " + j + " was " + pop.desc);
 					}
 					
 					stack.push(call.returnType);
@@ -268,8 +290,9 @@ public class LzJvmCompiler
 					for(int j = call.argCount - 1; j >= 0; j--)
 					{
 						ArgType pop = stack.pop();
-						if(pop != call.argTypes[j])
-							throw new LzVMCallNotFoundException("Invalid call signature @" + i + ". Expected " + call.descriptor + " but argument " + j + " was " + pop.desc);
+						ArgType expect = call.argTypes[j];
+						if(pop != expect)
+							throw new LzVMCallNotFoundException(LzOpcodes.opNameIndexed(i, op) + ": Invalid call signature. Expected " + expect.desc + " in " + call.descriptor + " but argument " + j + " was " + pop.desc);
 					}
 					
 					stack.push(call.returnType);
@@ -294,29 +317,35 @@ public class LzJvmCompiler
 				}
 				break;
 				case LzOpcodes.SUB:
-					stack.pop();
-					stack.pop();
+				{
+					tryPop(i, op, stack, ArgType.DOUBLE);
+					tryPop(i, op, stack, ArgType.DOUBLE);
 					insn.add(new InsnNode(DSUB));
 					stack.push(ArgType.DOUBLE);
-					break;
+				}
+				break;
 				case LzOpcodes.MUL:
-					stack.pop();
-					stack.pop();
+				{
+					tryPop(i, op, stack, ArgType.DOUBLE);
+					tryPop(i, op, stack, ArgType.DOUBLE);
 					insn.add(new InsnNode(DMUL));
 					stack.push(ArgType.DOUBLE);
-					break;
+				}
+				break;
 				case LzOpcodes.DIV:
-					stack.pop();
-					stack.pop();
+				{
+					tryPop(i, op, stack, ArgType.DOUBLE);
 					insn.add(new InsnNode(DDIV));
 					stack.push(ArgType.DOUBLE);
-					break;
+				}
+				break;
 				case LzOpcodes.MOD:
-					stack.pop();
-					stack.pop();
+				{
+					tryPop(i, op, stack, ArgType.DOUBLE);
 					insn.add(new InsnNode(DREM));
 					stack.push(ArgType.DOUBLE);
-					break;
+				}
+				break;
 				case LzOpcodes.EQUALS:
 					insn.add(mCall(INVOKESTATIC, LzFMath, "eqd", "(DD)D")); stack.pop(); break;
 				case LzOpcodes.NOT_EQUALS:
@@ -336,11 +365,26 @@ public class LzJvmCompiler
 				case LzOpcodes.OR:
 					insn.add(mCall(INVOKESTATIC, LzFMath, "ord", "(DD)D")); stack.pop(); break;
 				case LzOpcodes.NOT:
-					insn.add(mCall(INVOKESTATIC, LzFMath, "notd", "(D)D")); break;
+				{
+					tryPop(i, op, stack, ArgType.DOUBLE);
+					insn.add(mCall(INVOKESTATIC, LzFMath, "notd", "(D)D"));
+					stack.push(ArgType.DOUBLE);
+					break;
+				}
 				case LzOpcodes.FSIN:
-					insn.add(mCall(INVOKESTATIC, LzFMath, "sind", "(D)D")); break;
+				{
+					tryPop(i, op, stack, ArgType.DOUBLE);
+					insn.add(mCall(INVOKESTATIC, LzFMath, "sind", "(D)D"));
+					stack.push(ArgType.DOUBLE);
+					break;
+				}
 				case LzOpcodes.FCOS:
-					insn.add(mCall(INVOKESTATIC, LzFMath, "cosd", "(D)D")); break;
+				{
+					tryPop(i, op, stack, ArgType.DOUBLE);
+					insn.add(mCall(INVOKESTATIC, LzFMath, "cosd", "(D)D"));
+					stack.push(ArgType.DOUBLE);
+					break;
+				}
 				
 				case LzOpcodes.READ:
 				{
@@ -363,31 +407,41 @@ public class LzJvmCompiler
 				
 				case LzOpcodes.WRITE:
 				{
+					tryPop(i, op, stack, ArgType.DOUBLE);
+					
 					int idx = code[++i];
 					String nameStr = body.sConstTable[idx];
 					FieldNode varHolder = varGetter.apply(nameStr);
 					
-					// Store into temp variable
-					insn.add(new VarInsnNode(DSTORE, 3));
+					boolean idxIsConst = false;
+					AbstractInsnNode index = insn.getLast();
+					if(index instanceof LdcInsnNode)
+					{
+						idxIsConst = true;
+						insn.remove(index);
+					}
+					int loc = -1;
+					if(!idxIsConst)
+					{
+						loc = newLocal.getAsInt();
+						insn.add(new VarInsnNode(DSTORE, loc));
+					}
 					
 					insn.add(new VarInsnNode(ALOAD, 0));
 					insn.add(new FieldInsnNode(GETFIELD, cn.name, varHolder.name, varHolder.desc));
-					insn.add(new VarInsnNode(DLOAD, 3));
-					
+					insn.add(idxIsConst ? index : new VarInsnNode(DLOAD, loc));
 					insn.add(mCall(
 							INVOKEINTERFACE,
 							LzVarOp,
 							"set",
 							"(D)V"
 					));
-					
-					stack.pop();
 				}
 				break;
 				
 				case LzOpcodes.LABEL:
 				{
-					insn.add(labelMap.get(labelIndex++));
+					insn.add(labelMap.get(labelIndex.getAndIncrement()));
 				}
 				break;
 				
@@ -428,6 +482,99 @@ public class LzJvmCompiler
 				{
 					stack.pop();
 					insn.add(new InsnNode(POP));
+				}
+				break;
+				
+				case LzOpcodes.READ_INDEXED:
+				{
+					tryPop(i, op, stack, ArgType.DOUBLE);
+					
+					int idx = code[++i];
+					String nameStr = body.sConstTable[idx];
+					FieldNode varHolder = varGetter.apply(nameStr);
+					
+					boolean idxIsConst = false;
+					AbstractInsnNode index = insn.getLast();
+					if(index instanceof LdcInsnNode)
+					{
+						idxIsConst = true;
+						insn.remove(index);
+					}
+					int loc = -1;
+					if(!idxIsConst)
+					{
+						loc = newLocal.getAsInt();
+						insn.add(new VarInsnNode(DSTORE, loc));
+					}
+					
+					insn.add(new VarInsnNode(ALOAD, 0));
+					insn.add(new FieldInsnNode(GETFIELD, cn.name, varHolder.name, varHolder.desc));
+					insn.add(idxIsConst ? index : new VarInsnNode(DLOAD, loc));
+					insn.add(mCall(
+							INVOKEINTERFACE,
+							LzVarOp,
+							"get",
+							"(D)D"
+					));
+					
+					stack.push(ArgType.DOUBLE);
+				}
+				break;
+				
+				case LzOpcodes.WRITE_INDEXED:
+				{
+					// Pop two doubles for write
+					tryPop(i, op, stack, ArgType.DOUBLE);
+					tryPop(i, op, stack, ArgType.DOUBLE);
+					
+					int idx = code[++i];
+					String nameStr = body.sConstTable[idx];
+					FieldNode varHolder = varGetter.apply(nameStr);
+					
+					boolean idxIsConst = false;
+					boolean valIsConst = false;
+					
+					AbstractInsnNode value = insn.getLast();
+					if(value instanceof LdcInsnNode)
+					{
+						valIsConst = true;
+						insn.remove(value);
+					}
+					
+					AbstractInsnNode index = insn.getLast();
+					if(valIsConst && index instanceof LdcInsnNode)
+					{
+						idxIsConst = true;
+						insn.remove(index);
+					}
+					
+					int valueLocal = -1;
+					int indexLocal = -1;
+					
+					if(!valIsConst)
+					{
+						valueLocal = newLocal.getAsInt();
+						insn.add(new VarInsnNode(DSTORE, valueLocal));
+					}
+					
+					if(!idxIsConst)
+					{
+						indexLocal = newLocal.getAsInt();
+						insn.add(new VarInsnNode(DSTORE, indexLocal));
+					}
+					
+					insn.add(new VarInsnNode(ALOAD, 0));
+					insn.add(new FieldInsnNode(GETFIELD, cn.name, varHolder.name, varHolder.desc));
+					
+					insn.add(idxIsConst ? index : new VarInsnNode(DLOAD, indexLocal));
+					insn.add(valIsConst ? value : new VarInsnNode(DLOAD, valueLocal));
+					
+					insn.add(mCall(
+							INVOKEINTERFACE,
+							LzVarOp,
+							"set",
+							"(DD)V"
+					));
 				}
 				break;
 				

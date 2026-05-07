@@ -4,6 +4,8 @@ import dev.zeith.lzvm.molang.compiler.MoLangCompiler;
 import dev.zeith.lzvm.op.LzOpcodes;
 import dev.zeith.lzvm.program.*;
 
+import java.util.function.Consumer;
+
 public class LoopExpression
 		extends MLExpression
 {
@@ -25,8 +27,13 @@ public class LoopExpression
 	{
 		final LzLabel loopStart = new LzLabel();
 		final LzLabel afterLoop = new LzLabel();
+		final LzLabel toLoopIncrement = new LzLabel();
 		
-		ExpressionScope subScope = scope.withLoopExit(afterLoop);
+		final int counter = builder.allocLocal();
+		
+		ExpressionScope subScope = scope
+				.withJumpToLoopExit(b -> b.addJump(LzOpcodes.JUMP, afterLoop))
+				.withJumpToLoopStart(b -> b.addJump(LzOpcodes.JUMP, toLoopIncrement));
 		
 		// store the loop count into a var
 		Object loopCountO = this.children[0].evalStatic();
@@ -45,7 +52,6 @@ public class LoopExpression
 		
 		// Initialize counter to zero
 		builder.addConstD(0);
-		final int counter = builder.allocLocal();
 		builder.addStore(counter);
 		
 		builder.addLabel(loopStart);
@@ -59,6 +65,8 @@ public class LoopExpression
 		
 		// Loop code
 		this.children[1].toLz(compiler, builder, subScope);
+		
+		builder.addLabel(toLoopIncrement);
 		
 		// Update counter after code executes
 		builder.addLoad(counter).addConstD(1).addInsn(LzOpcodes.ADD).addStore(counter);

@@ -1,14 +1,15 @@
 package dev.zeith.lzvm.molang.expression;
 
 import dev.zeith.lzvm.molang.compiler.MoLangCompiler;
+import dev.zeith.lzvm.op.LzOpcodes;
 import dev.zeith.lzvm.program.*;
 
-public class BreakExpression
+public class ContinueExpression
 		extends MLExpression
 {
-	public static final BreakExpression INSTANCE = new BreakExpression();
+	public static final ContinueExpression INSTANCE = new ContinueExpression();
 	
-	public BreakExpression()
+	public ContinueExpression()
 	{
 		super(0);
 	}
@@ -22,7 +23,7 @@ public class BreakExpression
 	@Override
 	public void toLz(MoLangCompiler compiler, LzProgramBuilder builder, ExpressionScope scope)
 	{
-		scope.getJumpToLoopExit().accept(builder);
+		scope.getJumpToLoopStart().accept(builder);
 	}
 	
 	@Override

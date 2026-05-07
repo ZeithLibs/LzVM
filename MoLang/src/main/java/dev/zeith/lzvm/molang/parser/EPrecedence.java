@@ -10,8 +10,6 @@ public enum EPrecedence
 	ASSIGNMENT,
 	CONDITIONAL,
 	
-	ARRAY_ACCESS,
-	
 	NULLISH_COALESCING,
 	
 	AND,
@@ -24,6 +22,7 @@ public enum EPrecedence
 	PRODUCT,
 	EXPONENT,
 	
+	ARRAY_ACCESS,
 	PREFIX,
 	POSTFIX,
 	FUNCTION,

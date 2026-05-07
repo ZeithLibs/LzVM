@@ -12,9 +12,9 @@ public class AssignParselet
 	@Override
 	public MLExpression parse(MoParser parser, Token token, MLExpression leftExpr)
 	{
-		if(!(leftExpr instanceof NameExpression))
-			throw new LzVMException("Assignment can only happen to a NameExpression, but tried with " + leftExpr.getClass().getSimpleName());
-		return new AssignExpression((NameExpression) leftExpr, parser.parseExpression(getPrecedence()));
+		if(!(leftExpr instanceof IVarAccessExpression))
+			throw new LzVMException("Assignment can only happen to a IVarAccessExpression, but tried with " + leftExpr.getClass().getSimpleName());
+		return new AssignExpression((IVarAccessExpression) leftExpr, parser.parseExpression(getPrecedence()));
 	}
 	
 	@Override

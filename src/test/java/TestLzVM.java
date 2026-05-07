@@ -113,19 +113,19 @@ public class TestLzVM
 				.mallocStack(1)
 				.fillArgs(x);
 		
-		System.out.println("Coldboot Eval: " + vm.eval(prog, pStack));
+		System.out.println("Coldboot Eval: " + vm.interpret(prog, pStack));
 		System.out.println("Coldboot Java: " + expr.get(x));
 		
-		for(int i = 0; i < 8192; i++) vm.eval(prog, pStack);
+		for(int i = 0; i < 8192; i++) vm.interpret(prog, pStack);
 		for(int i = 0; i < 8192; i++) expr.get(x);
 		
 		System.out.println(prog.body.disassemble(true));
 		
 		System.out.println();
-		System.out.println("Eval: " + vm.eval(prog, pStack));
+		System.out.println("Interpret: " + vm.interpret(prog, pStack));
 		System.out.println();
 		
-		benchmark(() -> vm.eval(prog, pStack));
+		benchmark(() -> vm.interpret(prog, pStack));
 		
 		System.out.println();
 		System.out.println("Java: " + expr.get(x));

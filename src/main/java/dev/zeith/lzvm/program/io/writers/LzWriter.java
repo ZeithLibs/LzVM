@@ -15,7 +15,7 @@ public abstract class LzWriter
 	
 	public LzWriter(OutputStream stream, LzProgram program)
 	{
-		this.stream = new DataOutputStream(stream);
+		this.stream = stream instanceof DataOutputStream ? (DataOutputStream) stream : new DataOutputStream(stream);
 		this.program = program;
 		setup();
 	}

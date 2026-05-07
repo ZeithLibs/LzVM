@@ -49,11 +49,12 @@ public class TestBulkBedrockParsing
 				Path path = it.next();
 				latency.add(exec.submit(() ->
 				{
+					String str = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
 					long start = System.nanoTime();
 					int expressionCount = 0;
 					try
 					{
-						expressionCount = parse(path);
+						expressionCount = parse(str);
 					} catch(Exception e)
 					{
 						e.printStackTrace();
@@ -85,10 +86,9 @@ public class TestBulkBedrockParsing
 		System.out.println("Average time per expression: " + TimeUnit.NANOSECONDS.toMicros(totalDuration / totalExpressionCount) + " micros");
 	}
 	
-	private static int parse(Path path)
+	private static int parse(String str)
 			throws IOException
 	{
-		String str = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
 		AnimationFile af = gson.fromJson(str, AnimationFile.class);
 		if(Double.isNaN(af.animation_length)) return 0;
 		
@@ -101,11 +101,13 @@ public class TestBulkBedrockParsing
 			counter.incrementAndGet();
 			try
 			{
-				LzExpression lzf = compiler.parseFactory(jvmCompiler, ml, 0, new LzJVM.LzClassLoader()).instantiate(STORE);
-				boolean constant = false;
-				if(lzf instanceof LzExpression.ConstantExpression) constant = true;
-//				lzf.get();
-//				System.out.println(ml + " = " + lzf.get() + (constant ? " (CONST)" : ""));
+//				compiler.compile(0, compiler.parse(ml, true));
+				LzFactory lzf = compiler.parseFactory(jvmCompiler, ml, 0, new LzJVM.LzClassLoader());
+//				LzExpression expr = lzf.instantiate(STORE);
+//				boolean constant = false;
+//				if(expr instanceof LzExpression.ConstantExpression) constant = true;
+//				expr.get();
+//				System.out.println(ml + " = " + expr.get() + (constant ? " (CONST)" : ""));
 			} catch(Exception e)
 			{
 				e.printStackTrace();

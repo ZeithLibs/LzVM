@@ -4,7 +4,6 @@ import dev.zeith.lzvm.program.*;
 import dev.zeith.lzvm.program.io.LzDataBlock;
 
 import java.io.*;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
 public class LzReaderV1

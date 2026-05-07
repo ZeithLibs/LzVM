@@ -82,6 +82,18 @@ public class LzProgramBuilder
 				.putInsnSConstIdx(varName);
 	}
 	
+	public LzProgramBuilder addArrayRead(String varName)
+	{
+		return addInsn(LzOpcodes.READ_INDEXED)
+				.putInsnSConstIdx(varName);
+	}
+	
+	public LzProgramBuilder addArrayWrite(String varName)
+	{
+		return addInsn(LzOpcodes.WRITE_INDEXED)
+				.putInsnSConstIdx(varName);
+	}
+	
 	public LzProgramBuilder addLabel(LzLabel label)
 	{
 		if(label.insnPos != null) throw new IllegalArgumentException("Tried registering " + label + " that was already added.");
@@ -111,7 +123,7 @@ public class LzProgramBuilder
 	
 	public int allocLocal()
 	{
-		int local = argCount + 4 + usedLocals.size() * 4;
+		int local = argCount + 1 + usedLocals.size() * 2;
 		usedLocals.add(local);
 		return local;
 	}

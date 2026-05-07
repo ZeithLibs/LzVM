@@ -15,20 +15,30 @@ public class MoParser
 	
 	static
 	{
+		// Simple feature set
 		prefixParselets.put(ETokenType.NAME, new NameParselet());
 		prefixParselets.put(ETokenType.STRING, new StringParselet());
 		prefixParselets.put(ETokenType.NUMBER, new NumberParselet());
 		prefixParselets.put(ETokenType.TRUE, new BoolParselet());
 		prefixParselets.put(ETokenType.FALSE, new BoolParselet());
 		prefixParselets.put(ETokenType.BREAK, new BreakParselet());
-		prefixParselets.put(ETokenType.LOOP, new LoopParselet());
+		prefixParselets.put(ETokenType.CONTINUE, new ContinueParselet());
 		prefixParselets.put(ETokenType.BRACKET_LEFT, new GroupParselet());
 		prefixParselets.put(ETokenType.CURLY_BRACKET_LEFT, new CodeBlockParselet());
 		prefixParselets.put(ETokenType.MINUS, new UnaryMinusParselet());
 		prefixParselets.put(ETokenType.PLUS, new UnaryPlusParselet());
 		prefixParselets.put(ETokenType.BANG, new NotParselet());
+		prefixParselets.put(ETokenType.PLUS_DOUBLE, new UnaryCounterParselet());
+		prefixParselets.put(ETokenType.MINUS_DOUBLE, new UnaryCounterParselet());
 		
-		infixParselets.put(ETokenType.QUESTION, new TernaryParselet());
+		// More complex logic
+		prefixParselets.put(ETokenType.LOOP, new LoopParselet());
+		prefixParselets.put(ETokenType.RETURN, new ReturnParselet());
+		
+		///////////
+		// INFIX //
+		///////////
+		
 		infixParselets.put(ETokenType.PLUS, new GenericBinaryOpParselet(EPrecedence.SUM));
 		infixParselets.put(ETokenType.MINUS, new GenericBinaryOpParselet(EPrecedence.SUM));
 		infixParselets.put(ETokenType.SLASH, new GenericBinaryOpParselet(EPrecedence.PRODUCT));
@@ -43,7 +53,16 @@ public class MoParser
 		infixParselets.put(ETokenType.AND, new GenericBinaryOpParselet(EPrecedence.AND));
 		infixParselets.put(ETokenType.OR, new GenericBinaryOpParselet(EPrecedence.OR));
 		infixParselets.put(ETokenType.COALESCE, new GenericBinaryOpParselet(EPrecedence.NULLISH_COALESCING));
+		// Compound assigns
+		infixParselets.put(ETokenType.COMP_PLUS, CompoundAssignParselet.INSTANCE);
+		infixParselets.put(ETokenType.COMP_MINUS, CompoundAssignParselet.INSTANCE);
+		infixParselets.put(ETokenType.COMP_ASTERISK, CompoundAssignParselet.INSTANCE);
+		infixParselets.put(ETokenType.COMP_SLASH, CompoundAssignParselet.INSTANCE);
+		infixParselets.put(ETokenType.COMP_PERCENT, CompoundAssignParselet.INSTANCE);
+		//
+		infixParselets.put(ETokenType.QUESTION, new TernaryParselet());
 		infixParselets.put(ETokenType.ASSIGN, new AssignParselet());
+		infixParselets.put(ETokenType.ARRAY_LEFT, new ArrayParselet());
 	}
 	
 	private final Tokenizer tokenIterator;
