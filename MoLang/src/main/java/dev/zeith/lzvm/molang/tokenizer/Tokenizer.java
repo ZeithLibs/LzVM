@@ -1,5 +1,6 @@
 package dev.zeith.lzvm.molang.tokenizer;
 
+import dev.zeith.lzvm.molang.parser.ExpressionFixer;
 import lombok.ToString;
 
 import java.util.Iterator;
@@ -16,6 +17,8 @@ public class Tokenizer
 	
 	public void init(String expression)
 	{
+		expression = ExpressionFixer.fixExpression(expression);
+		
 		this.currentLine = 0;
 		this.pos = 0;
 		this.i = 0;
