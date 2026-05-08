@@ -24,6 +24,11 @@ public class LzCallInsn
 		this.jvmDescriptor = ArgType.jvmDescriptor(returnType, argTypes);
 	}
 	
+	public LzCallInsn renamed(String newName)
+	{
+		return new LzCallInsn(newName, returnType, argTypes);
+	}
+	
 	@Override
 	public String toString()
 	{

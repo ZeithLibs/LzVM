@@ -57,6 +57,12 @@ public interface LzVarOp
 			{
 				v = value;
 			}
+			
+			@Override
+			public String toString()
+			{
+				return "rw(" + v + ")";
+			}
 		};
 	}
 	

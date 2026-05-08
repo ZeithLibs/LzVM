@@ -10,12 +10,12 @@ public interface ICompilerLibrary
 {
 	void register(MoLangCompiler compiler);
 	
-	default IMoFunctionCallTransformer argsAndExtraPure(Function<FuncCallExpression, MLExpression> optimizer, Consumer<LzProgramBuilder> extra)
+	static IMoFunctionCallTransformer argsAndExtraPure(Function<FuncCallExpression, MLExpression> optimizer, Consumer<LzProgramBuilder> extra)
 	{
 		return argsAndExtra(true, optimizer, extra);
 	}
 	
-	default IMoFunctionCallTransformer argsAndExtra(boolean pure, Function<FuncCallExpression, MLExpression> optimizer, Consumer<LzProgramBuilder> extra)
+	static IMoFunctionCallTransformer argsAndExtra(boolean pure, Function<FuncCallExpression, MLExpression> optimizer, Consumer<LzProgramBuilder> extra)
 	{
 		return new IMoFunctionCallTransformer()
 		{

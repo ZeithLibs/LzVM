@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 
 import static dev.zeith.lzvm.jvm.LzMath.*;
 import static dev.zeith.lzvm.molang.compiler.MoLangCompiler.*;
+import static dev.zeith.lzvm.molang.compiler.libs.ICompilerLibrary.*;
 import static dev.zeith.lzvm.op.LzOpcodes.*;
 import static dev.zeith.lzvm.op.LzOpcodes.MUL;
 import static dev.zeith.lzvm.program.ArgType.DOUBLE;
@@ -35,41 +36,45 @@ public enum MoMathLibrary
 		final String JMoMath = getClass().getName().replace('.', '/');
 		
 		// Constants
-		nt.put("math.pi", e -> new NumberExpression(Math.PI));
+		nt.put("pi", e -> new NumberExpression(Math.PI));
+		nt.put("e", e -> new NumberExpression(Math.E));
 		
 		// Standard Java Math functions:
-		c.put(dUnaryOperator("math.sin"), argsAndExtraPure(duOpt(val -> LzMath.sind(val * DEG_TO_RAD)), b -> b.addConstD(DEG_TO_RAD).addInsn(MUL).addInsn(FSIN)));
-		c.put(dUnaryOperator("math.cos"), argsAndExtraPure(duOpt(val -> LzMath.cosd(val * DEG_TO_RAD)), b -> b.addConstD(DEG_TO_RAD).addInsn(MUL).addInsn(FCOS)));
-		c.put(dBinaryOperator("math.mod"), argsAndExtraPure(dbOpt((left, right) -> left % right), b -> b.addInsn(MOD)));
-		c.put(dUnaryOperator("math.acos"), argsAndExtraPure(duOpt(val -> Math.acos(val) * RAD_TO_DEG), b -> b.addJCall(JMath, dUnaryOperator("acos")).addConstD(RAD_TO_DEG).addInsn(MUL)));
-		c.put(dUnaryOperator("math.asin"), argsAndExtraPure(duOpt(val -> Math.asin(val) * RAD_TO_DEG), b -> b.addJCall(JMath, dUnaryOperator("asin")).addConstD(RAD_TO_DEG).addInsn(MUL)));
-		c.put(dUnaryOperator("math.atan"), argsAndExtraPure(duOpt(val -> Math.atan(val) * RAD_TO_DEG), b -> b.addJCall(JMath, dUnaryOperator("atan")).addConstD(RAD_TO_DEG).addInsn(MUL)));
-		c.put(dBinaryOperator("math.atan2"), argsAndExtraPure(dbOpt((a, b) -> Math.atan2(a, b) * RAD_TO_DEG), b -> b.addJCall(JMath, dBinaryOperator("atan2")).addConstD(RAD_TO_DEG).addInsn(MUL)));
-		c.put(dUnaryOperator("math.abs"), argsAndExtraPure(duOpt(Math::abs), b -> b.addJCall(JMath, dUnaryOperator("abs"))));
-		c.put(dUnaryOperator("math.sqrt"), argsAndExtraPure(duOpt(Math::sqrt), b -> b.addJCall(JMath, dUnaryOperator("sqrt"))));
-		c.put(dUnaryOperator("math.ceil"), argsAndExtraPure(duOpt(Math::ceil), b -> b.addJCall(JMath, dUnaryOperator("ceil"))));
-		c.put(dUnaryOperator("math.ln"), argsAndExtraPure(duOpt(Math::log), b -> b.addJCall(JMath, dUnaryOperator("log"))));
-		c.put(dUnaryOperator("math.exp"), argsAndExtraPure(duOpt(Math::exp), b -> b.addJCall(JMath, dUnaryOperator("exp"))));
-		c.put(dBinaryOperator("math.max"), argsAndExtraPure(dbOpt(Math::max), b -> b.addJCall(JMath, dBinaryOperator("max"))));
-		c.put(dBinaryOperator("math.min"), argsAndExtraPure(dbOpt(Math::min), b -> b.addJCall(JMath, dBinaryOperator("min"))));
-		c.put(dUnaryOperator("math.floor"), argsAndExtraPure(duOpt(Math::floor), b -> b.addJCall(JMath, dUnaryOperator("floor"))));
+		c.put(dUnaryOperator("sin"), argsAndExtraPure(duOpt(val -> LzMath.sind(val * DEG_TO_RAD)), b -> b.addConstD(DEG_TO_RAD).addInsn(MUL).addInsn(FSIN)));
+		c.put(dUnaryOperator("cos"), argsAndExtraPure(duOpt(val -> LzMath.cosd(val * DEG_TO_RAD)), b -> b.addConstD(DEG_TO_RAD).addInsn(MUL).addInsn(FCOS)));
+		c.put(dBinaryOperator("mod"), argsAndExtraPure(dbOpt((left, right) -> left % right), b -> b.addInsn(MOD)));
+		c.put(dUnaryOperator("acos"), argsAndExtraPure(duOpt(val -> Math.acos(val) * RAD_TO_DEG), b -> b.addJCall(JMath, dUnaryOperator("acos")).addConstD(RAD_TO_DEG).addInsn(MUL)));
+		c.put(dUnaryOperator("asin"), argsAndExtraPure(duOpt(val -> Math.asin(val) * RAD_TO_DEG), b -> b.addJCall(JMath, dUnaryOperator("asin")).addConstD(RAD_TO_DEG).addInsn(MUL)));
+		c.put(dUnaryOperator("atan"), argsAndExtraPure(duOpt(val -> Math.atan(val) * RAD_TO_DEG), b -> b.addJCall(JMath, dUnaryOperator("atan")).addConstD(RAD_TO_DEG).addInsn(MUL)));
+		c.put(dBinaryOperator("atan2"), argsAndExtraPure(dbOpt((a, b) -> Math.atan2(a, b) * RAD_TO_DEG), b -> b.addJCall(JMath, dBinaryOperator("atan2")).addConstD(RAD_TO_DEG).addInsn(MUL)));
+		c.put(dUnaryOperator("abs"), argsAndExtraPure(duOpt(Math::abs), b -> b.addJCall(JMath, dUnaryOperator("abs"))));
+		c.put(dUnaryOperator("sqrt"), argsAndExtraPure(duOpt(Math::sqrt), b -> b.addJCall(JMath, dUnaryOperator("sqrt"))));
+		c.put(dUnaryOperator("ceil"), argsAndExtraPure(duOpt(Math::ceil), b -> b.addJCall(JMath, dUnaryOperator("ceil"))));
+		c.put(dUnaryOperator("ln"), argsAndExtraPure(duOpt(Math::log), b -> b.addJCall(JMath, dUnaryOperator("log"))));
+		c.put(dUnaryOperator("exp"), argsAndExtraPure(duOpt(Math::exp), b -> b.addJCall(JMath, dUnaryOperator("exp"))));
+		c.put(dUnaryOperator("floor"), argsAndExtraPure(duOpt(Math::floor), b -> b.addJCall(JMath, dUnaryOperator("floor"))));
+		c.put(dBinaryOperator("max"), argsAndExtraPure(dbOpt(Math::max), b -> b.addJCall(JMath, dBinaryOperator("max"))));
+		c.put(dBinaryOperator("min"), argsAndExtraPure(dbOpt(Math::min), b -> b.addJCall(JMath, dBinaryOperator("min"))));
+		c.put(dBinaryOperator("copy_sign"), argsAndExtraPure(dbOpt(Math::copySign), b -> b.addJCall(JMath, dBinaryOperator("copySign"))));
 		
 		// MoMath functions
-		c.put(dUnaryOperator("math.min_angle"), argsAndExtraPure(duOpt(MoMathLibrary::minAngle), b -> b.addJCall(JMoMath, dUnaryOperator("minAngle"))));
-		c.put(dUnaryOperator("math.hermite_blend"), argsAndExtraPure(duOpt(MoMathLibrary::hermiteBlend), b -> b.addJCall(JMoMath, dUnaryOperator("hermiteBlend"))));
-		c.put(dTernaryOperator("math.lerp"), argsAndExtraPure(dtOpt(MoMathLibrary::lerp), b -> b.addJCall(JMoMath, dTernaryOperator("lerp"))));
-		c.put(dTernaryOperator("math.clamp"), argsAndExtraPure(dtOpt(MoMathLibrary::clamp), b -> b.addJCall(JMoMath, dTernaryOperator("clamp"))));
-		c.put(dTernaryOperator("math.lerprotate"), argsAndExtraPure(dtOpt(MoMathLibrary::lerpRotate), b -> b.addJCall(JMoMath, dTernaryOperator("lerpRotate"))));
-		c.put(dUnaryOperator("math.trunc"), argsAndExtraPure(duOpt(MoMathLibrary::trunc), b -> b.addJCall(JMoMath, dUnaryOperator("trunc"))));
-		c.put(dUnaryOperator("math.round"), argsAndExtraPure(duOpt(MoMathLibrary::round), b -> b.addJCall(JMoMath, dUnaryOperator("round"))));
+		c.put(dUnaryOperator("sign"), argsAndExtraPure(duOpt(MoMathLibrary::signum), b -> b.addJCall(JMoMath, dUnaryOperator("signum"))));
+		c.put(dUnaryOperator("min_angle"), argsAndExtraPure(duOpt(MoMathLibrary::minAngle), b -> b.addJCall(JMoMath, dUnaryOperator("minAngle"))));
+		c.put(dUnaryOperator("hermite_blend"), argsAndExtraPure(duOpt(MoMathLibrary::hermiteBlend), b -> b.addJCall(JMoMath, dUnaryOperator("hermiteBlend"))));
+		c.put(dTernaryOperator("lerp"), argsAndExtraPure(dtOpt(MoMathLibrary::lerp), b -> b.addJCall(JMoMath, dTernaryOperator("lerp"))));
+		c.put(dTernaryOperator("inverse_lerp"), argsAndExtraPure(dtOpt(MoMathLibrary::inverseLerp), b -> b.addJCall(JMoMath, dTernaryOperator("inverseLerp"))));
+		c.put(dTernaryOperator("clamp"), argsAndExtraPure(dtOpt(MoMathLibrary::clamp), b -> b.addJCall(JMoMath, dTernaryOperator("clamp"))));
+		c.put(dTernaryOperator("lerprotate"), argsAndExtraPure(dtOpt(MoMathLibrary::lerpRotate), b -> b.addJCall(JMoMath, dTernaryOperator("lerpRotate"))));
+		c.put(dUnaryOperator("trunc"), argsAndExtraPure(duOpt(MoMathLibrary::trunc), b -> b.addJCall(JMoMath, dUnaryOperator("trunc"))));
+		c.put(dUnaryOperator("round"), argsAndExtraPure(duOpt(MoMathLibrary::round), b -> b.addJCall(JMoMath, dUnaryOperator("round"))));
 		
 		// Random functions may never be optimized
-		c.put(dBinaryOperator("math.random"), argsAndExtra(false, null, b -> b.addJCall(JMoMath, dBinaryOperator("random"))));
-		c.put(dBinaryOperator("math.random_integer"), argsAndExtra(false, null, b -> b.addJCall(JMoMath, dBinaryOperator("randomInt"))));
-		c.put(dTernaryOperator("math.die_roll"), argsAndExtra(false, null, b -> b.addJCall(JMoMath, dTernaryOperator("dieRoll"))));
-		c.put(dTernaryOperator("math.die_roll_integer"), argsAndExtra(false, null, b -> b.addJCall(JMoMath, dTernaryOperator("dieRollInt"))));
+		c.put(dBinaryOperator("random"), argsAndExtra(false, null, b -> b.addJCall(JMoMath, dBinaryOperator("random"))));
+		c.put(dBinaryOperator("random_integer"), argsAndExtra(false, null, b -> b.addJCall(JMoMath, dBinaryOperator("randomInt"))));
+		c.put(dTernaryOperator("die_roll"), argsAndExtra(false, null, b -> b.addJCall(JMoMath, dTernaryOperator("dieRoll"))));
+		c.put(dTernaryOperator("die_roll_integer"), argsAndExtra(false, null, b -> b.addJCall(JMoMath, dTernaryOperator("dieRollInt"))));
 		
-		c.put(dBinaryOperator("math.pow"),
+		c.put(dBinaryOperator("pow"),
 				argsAndExtraPure(
 						call ->
 						{
@@ -84,39 +89,78 @@ public enum MoMathLibrary
 				)
 		);
 		
-		this.callTransformers = Collections.unmodifiableMap(c);
-		this.nameTransformers = Collections.unmodifiableMap(nt);
+		MoLangEasing.bind(c);
 		
-		// https://wiki.bedrock.dev/concepts/molang
+		Map<LzCallInsn, IMoFunctionCallTransformer> c2 = new HashMap<>();
+		Map<String, Function<NameExpression, MLExpression>> nt2 = new HashMap<>();
+		for(Map.Entry<LzCallInsn, IMoFunctionCallTransformer> e : c.entrySet()) c2.put(e.getKey().renamed("math." + e.getKey().getName()), e.getValue());
+		for(Map.Entry<String, Function<NameExpression, MLExpression>> e : nt.entrySet()) nt2.put("math." + e.getKey(), e.getValue());
+		this.callTransformers = Collections.unmodifiableMap(c2);
+		this.nameTransformers = Collections.unmodifiableMap(nt2);
+		
+		// https://bedrock.dev/docs/stable/Molang#Math%20Functions
 //		ensureTransformersExist(
-//				"math.abs(x)	Absolute value of x",
-//				"math.acos(x)	Arccosine (inverse cosine) of x",
-//				"math.asin(x)	Arcsine (inverse sine) of x",
-//				"math.atan(x)	Arctangent (inverse tangent) of x",
-//				"math.atan2(y, x)	Arctangent of y / x — returns angle in degrees",
-//				"math.ceil(x)	Round x up to the nearest integer",
-//				"math.clamp(x, min, max)	Constrain x between min and max",
-//				"math.cos(x)	Cosine of x degrees",
-//				"math.die_roll(n, low, high)	Roll n floats between low and high and sum them",
-//				"math.die_roll_integer(n, low, high)	Same as above but rolls integers",
-//				"math.exp(x)	Exponential (e^x)",
-//				"math.floor(x)	Round x down to the nearest integer",
-//				"math.hermite_blend(t)	Smooth curve: 3t^2 - 2t^3, good for eased interpolation",
-//				"math.lerp(a, b, t)	Linearly interpolate between a and b by t",
-//				"math.lerprotate(a, b, t)	Rotational interpolation, shortest path around a circle",
-//				"math.ln(x)	Natural logarithm of x",
-//				"math.max(a, b)	Larger of a or b",
-//				"math.min(a, b)	Smaller of a or b",
-//				"math.min_angle(x)	Clamp angle x to the range -180° to 180°",
-//				"math.mod(a, b)	Remainder of a / b",
-//				"math.pi	Constant for π (approximately 3.14159)",
-//				"math.pow(base, exponent)	Raise base to the exponent power",
-//				"math.random(low, high)	Random float between low and high",
-//				"math.random_integer(low, high)	Random integer between low and high",
-//				"math.round(x)	Round x to the nearest integer",
-//				"math.sin(x)	Sine of x degrees",
-//				"math.sqrt(x)	Square root of x",
-//				"math.trunc(x) Remove fractional part of x (round toward zero)"
+//				"`math.abs(value)`	Absolute value of value",
+//				"`math.acos(value)`	arccos of value",
+//				"`math.asin(value)`	arcsin of value",
+//				"`math.atan(value)`	arctan of value",
+//				"`math.atan2(y, x)`	arctan of y/x. NOTE: the order of arguments!",
+//				"`math.ceil(value)`	Round value up to nearest integral number",
+//				"`math.clamp(value, min, max)`	Clamp value to between min and max inclusive",
+//				"`math.copy_sign(A, B)`	Returns A with the sign of B",
+//				"`math.cos(value)`	Cosine (in degrees) of value",
+//				"`math.die_roll(num, low, high)`	returns the sum of 'num' random numbers, each with a value from low to high`. Note: the generated random numbers are not integers like normal dice. For that, use `math.die_roll_integer`.",
+//				"`math.die_roll_integer(num, low, high)`	returns the sum of 'num' random integer numbers, each with a value from low to high`. Note: the generated random numbers are integers like normal dice.",
+//				"`math.ease_in_back(start, end, 0_to_1)`	Output goes from start to end via 0_to_1, overshooting backward before accelerating into the end",
+//				"`math.ease_in_bounce(start, end, 0_to_1)`	Output goes from start to end via 0_to_1, starting with bounce oscillations and settling into the end",
+//				"`math.ease_in_circ(start, end, 0_to_1)`	Output goes from start to end via 0_to_1, starting slow and accelerating along a circular curve toward the end",
+//				"`math.ease_in_cubic(start, end, 0_to_1)`	Output goes from start to end via 0_to_1, starting slow and accelerating rapidly toward the end",
+//				"`math.ease_in_elastic(start, end, 0_to_1)`	Output goes from start to end via 0_to_1, starting with elastic oscillations before accelerating into the end",
+//				"`math.ease_in_expo(start, end, 0_to_1)`	Output goes from start to end via 0_to_1, starting slow and accelerating extremely rapidly toward the end",
+//				"`math.ease_in_out_back(start, end, 0_to_1)`	Output goes from start to end via 0_to_1, overshooting at both start and end, with smoother change in the middle",
+//				"`math.ease_in_out_bounce(start, end, 0_to_1)`	Output goes from start to end via 0_to_1, starting and ending with bounce oscillations, smoother in the middle",
+//				"`math.ease_in_out_circ(start, end, 0_to_1)`	Output goes from start to end via 0_to_1, starting and ending slow, with circular acceleration and deceleration in the middle",
+//				"`math.ease_in_out_cubic(start, end, 0_to_1)`	Output goes from start to end via 0_to_1, starting slow, accelerating rapidly in the middle, then slowing again at the end",
+//				"`math.ease_in_out_elastic(start, end, 0_to_1)`	Output goes from start to end via 0_to_1, oscillating elastically at both start and end, with stable change in the middle",
+//				"`math.ease_in_out_expo(start, end, 0_to_1)`	Output goes from start to end via 0_to_1, starting and ending slow, with extremely rapid change in the middle",
+//				"`math.ease_in_out_quad(start, end, 0_to_1)`	Output goes from start to end via 0_to_1, starting slow, accelerating in the middle, then slowing again at the end",
+//				"`math.ease_in_out_quart(start, end, 0_to_1)`	Output goes from start to end via 0_to_1, starting slow, accelerating very rapidly in the middle, then slowing again at the end",
+//				"`math.ease_in_out_quint(start, end, 0_to_1)`	Output goes from start to end via 0_to_1, starting slow, accelerating extremely rapidly in the middle, then slowing again at the end",
+//				"`math.ease_in_out_sine(start, end, 0_to_1)`	Output goes from start to end via 0_to_1, starting and ending slow, with smoother change in the middle",
+//				"`math.ease_in_quad(start, end, 0_to_1)`	Output goes from start to end via 0_to_1, starting slow and accelerating toward the end",
+//				"`math.ease_in_quart(start, end, 0_to_1)`	Output goes from start to end via 0_to_1, starting slow and accelerating very rapidly toward the end",
+//				"`math.ease_in_quint(start, end, 0_to_1)`	Output goes from start to end via 0_to_1, starting slow and accelerating extremely rapidly toward the end",
+//				"`math.ease_in_sine(start, end, 0_to_1)`	Output goes from start to end via 0_to_1, starting slow and accelerating smoothly toward the end",
+//				"`math.ease_out_back(start, end, 0_to_1)`	Output goes from start to end via 0_to_1, overshooting past the end before settling into it",
+//				"`math.ease_out_bounce(start, end, 0_to_1)`	Output goes from start to end via 0_to_1, approaching the end with bounce oscillations that diminish over time",
+//				"`math.ease_out_circ(start, end, 0_to_1)`	Output goes from start to end via 0_to_1, starting fast and decelerating along a circular curve toward the end",
+//				"`math.ease_out_cubic(start, end, 0_to_1)`	Output goes from start to end via 0_to_1, starting fast and decelerating rapidly toward the end",
+//				"`math.ease_out_elastic(start, end, 0_to_1)`	Output goes from start to end via 0_to_1, overshooting the end with elastic oscillations before settling",
+//				"`math.ease_out_expo(start, end, 0_to_1)`	Output goes from start to end via 0_to_1, starting extremely fast and decelerating gradually toward the end",
+//				"`math.ease_out_quad(start, end, 0_to_1)`	Output goes from start to end via 0_to_1, starting fast and decelerating toward the end",
+//				"`math.ease_out_quart(start, end, 0_to_1)`	Output goes from start to end via 0_to_1, starting fast and decelerating very rapidly toward the end",
+//				"`math.ease_out_quint(start, end, 0_to_1)`	Output goes from start to end via 0_to_1, starting fast and decelerating extremely rapidly toward the end",
+//				"`math.ease_out_sine(start, end, 0_to_1)`	Output goes from start to end via 0_to_1, starting fast and decelerating smoothly toward the end",
+//				"`math.exp(value)`	Calculates e to the value'th power",
+//				"`math.floor(value)`	Round value down to nearest integral number",
+//				"`math.hermite_blend(value)`	Useful for simple smooth curve interpolation using one of the Hermite Basis functions: `3t^2 - 2t^3`. Note that while any valid float is a valid input, this function works best in the range [0,1].",
+//				"`math.inverse_lerp(start, end, value)`	Returns the normalized progress between start and end given value",
+//				"`math.lerp(start, end, 0_to_1)`	Lerp from start to end via 0_to_1",
+//				"`math.lerprotate(start, end, 0_to_1)`	Lerp the shortest direction around a circle from start degrees to end degrees via 0_to_1",
+//				"`math.ln(value)`	Natural logarithm of value",
+//				"`math.max(A, B)`	Return highest value of A or B",
+//				"`math.min(A, B)`	Return lowest value of A or B",
+//				"`math.min_angle(value)`	Minimize angle magnitude (in degrees) into the range [-180, 180)",
+//				"`math.mod(value, denominator)`	Return the remainder of value / denominator",
+//				"`math.pi`	Returns the float representation of the constant pi.",
+//				"`math.pow(base, exponent)`	Elevates `base` to the `exponent`'th power",
+//				"`math.random(low, high)`	Random value between low and high inclusive",
+//				"`math.random_integer(low, high)`	Random integer value between low and high inclusive",
+//				"`math.round(value)`	Round value to nearest integral number",
+//				"`math.sign(value)`	Returns 1 if value is positive, -1 otherwise",
+//				"`math.sin(value)`	Sine (in degrees) of value",
+//				"`math.sqrt(value)`	Square root of value",
+//				"`math.trunc(value)`	Round value towards zero"
 //		);
 	}
 	
@@ -129,12 +173,12 @@ public enum MoMathLibrary
 	
 	private void ensureTransformersExist(String... names)
 	{
-		final Pattern LINE_MAPPER = Pattern.compile("^(?<call>[\\w.]+)([(\\sx)]+.+)$");
+		final Pattern LINE_MAPPER = Pattern.compile("^`?(?<call>[\\w.]+)`?([(\\sx)]+.+)$");
 		HashSet<String> missing = Arrays.stream(names).map(s ->
 		{
 			Matcher m = LINE_MAPPER.matcher(s);
 			if(m.find()) return m.group("call");
-			return s;
+			throw new RuntimeException("Unable to find transformer for '" + s + "'");
 		}).collect(Collectors.toCollection(HashSet::new));
 		missing.removeAll(nameTransformers.keySet());
 		callTransformers.keySet().stream().map(LzCallInsn::getName).collect(Collectors.toList()).forEach(missing::remove);
@@ -181,6 +225,11 @@ public enum MoMathLibrary
 		double applyAsDouble(double a, double b, double c);
 	}
 	
+	public static double signum(double t)
+	{
+		return t > 0 ? 1 : -1;
+	}
+	
 	public static double hermiteBlend(double t)
 	{
 		return 3 * t * t - 2 * t * t * t;
@@ -199,6 +248,12 @@ public enum MoMathLibrary
 	public static double randomInt(double low, double high)
 	{
 		return Math.round((long) low + Math.random() * (long) (high - low));
+	}
+	
+	public static double inverseLerp(double start, double end, double value)
+	{
+		if(start == end) return 0.0;
+		return (value - start) / (end - start);
 	}
 	
 	public static double lerp(double start, double end, double amount)
