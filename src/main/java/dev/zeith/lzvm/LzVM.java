@@ -14,7 +14,7 @@ public class LzVM
 {
 	protected final ClassLoader loader;
 	protected final Map<String, Map<LzCallInsn, Optional<Method>>> jvmCache = new ConcurrentHashMap<>();
-	private LzJcallShutter jcallShutter = LzJcallShutter.ALLOW_EVERYTHING;
+	private LzJCallShutter jcallShutter = LzJCallShutter.ALLOW_EVERYTHING;
 	
 	public LzVM(ClassLoader loader)
 	{
@@ -26,9 +26,9 @@ public class LzVM
 		this(Thread.currentThread().getContextClassLoader());
 	}
 	
-	public LzVM addJCallShutter(LzJcallShutter shutter)
+	public LzVM addJCallShutter(LzJCallShutter shutter)
 	{
-		if(jcallShutter == LzJcallShutter.ALLOW_EVERYTHING)
+		if(jcallShutter == LzJCallShutter.ALLOW_EVERYTHING)
 		{
 			jcallShutter = shutter;
 			return this;
@@ -148,8 +148,8 @@ public class LzVM
 						String owner = vinsn = sConsts[insn[++i]];
 						cinsn = callTable[insn[++i]];
 						
-						if(jcallShutter != LzJcallShutter.ALLOW_EVERYTHING && !jcallShutter.permits(owner.replace('/', '.'), cinsn))
-							throw new LzVMCallNotFoundException(LzOpcodes.opNameIndexed(i, op) + ": jcall was not allowed by the interpret jcall shutter.");
+						if(jcallShutter != LzJCallShutter.ALLOW_EVERYTHING && !jcallShutter.permits(owner.replace('/', '.'), cinsn))
+							throw new LzVMCallNotFoundException(LzOpcodes.opNameIndexed(i, op) + ": jcall to " + owner + " was not allowed by the interpreters jcall shutter.");
 						
 						Method method = findMethod(owner, cinsn);
 						Object[] capturedArgs = new Object[cinsn.argCount];

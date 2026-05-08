@@ -26,6 +26,10 @@ public class EaseGraphGenerator
 		File gdir = new File("run", "graphs");
 		if(!gdir.isDirectory()) gdir.mkdirs();
 		
+		Set<String> allowedClasses = new HashSet<>();
+		mocomp.includeRequiredClasses(allowedClasses);
+		comp.addJCallShutter(new ClassSetJCallShutter(allowedClasses));
+		
 		for(LzCallInsn insn : binds.keySet())
 		{
 			String expr = insn.getName();
@@ -57,13 +61,13 @@ public class EaseGraphGenerator
 			xPoints[i] = i;
 			x.set(i / (double) (resolution - 1));
 			double y = 1 - expression.get();
-			yPoints[i] = Math.max(0, Math.min(resolution - 1, (int) Math.round(y * resolution)));
+			yPoints[i] = (int) Math.round(y * resolution);
 		}
 		
 		Graphics2D gfx = image.createGraphics();
-		gfx.setBackground(Color.WHITE);
+		gfx.setBackground(new Color(0x191919));
 		gfx.clearRect(0, 0, image.getWidth(), image.getHeight());
-		gfx.setColor(Color.BLACK);
+		gfx.setColor(Color.WHITE);
 		gfx.drawPolyline(xPoints, yPoints, resolution);
 		gfx.dispose();
 		

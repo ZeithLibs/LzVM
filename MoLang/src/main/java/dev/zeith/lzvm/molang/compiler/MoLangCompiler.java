@@ -16,6 +16,7 @@ public class MoLangCompiler
 	protected final Map<String, Function<NameExpression, MLExpression>> nameTransformers = new HashMap<>();
 	protected final Map<LzCallInsn, IMoFunctionCallTransformer> callTransformers = new HashMap<>();
 	protected final Map<String, String> aliases = new HashMap<>();
+	protected final Set<String> requiredClasses = new HashSet<>();
 	
 	public boolean optimize = true;
 	
@@ -41,6 +42,17 @@ public class MoLangCompiler
 	public static LzCallInsn dTernaryOperator(String name)
 	{
 		return LzCallInsn.ofDbl(name, ArgType.DOUBLE, ArgType.DOUBLE, ArgType.DOUBLE);
+	}
+	
+	public void includeRequiredClasses(Set<String> intoSet)
+	{
+		intoSet.addAll(this.requiredClasses);
+	}
+	
+	public MoLangCompiler registerRequiredClass(String className)
+	{
+		requiredClasses.add(className);
+		return this;
 	}
 	
 	public MoLangCompiler registerAlias(String alias, String origin)

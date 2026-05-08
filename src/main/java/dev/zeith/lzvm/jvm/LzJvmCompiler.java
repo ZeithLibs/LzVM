@@ -27,12 +27,12 @@ public class LzJvmCompiler
 	public static final String L_LzCallOp = "L" + LzCallOp + ";";
 	public static final String L_LzGenerated = "L" + LzGenerated + ";";
 	
-	private LzJcallShutter jcallShutter = LzJcallShutter.ALLOW_EVERYTHING;
+	private LzJCallShutter jcallShutter = LzJCallShutter.ALLOW_EVERYTHING;
 	public boolean generatedAnnotation = false;
 	
-	public LzJvmCompiler addJCallShutter(LzJcallShutter shutter)
+	public LzJvmCompiler addJCallShutter(LzJCallShutter shutter)
 	{
-		if(jcallShutter == LzJcallShutter.ALLOW_EVERYTHING)
+		if(jcallShutter == LzJCallShutter.ALLOW_EVERYTHING)
 		{
 			jcallShutter = shutter;
 			return this;
@@ -242,8 +242,8 @@ public class LzJvmCompiler
 					String owner = body.sConstTable[code[++i]];
 					LzCallInsn call = body.callTable[code[++i]];
 					
-					if(jcallShutter != LzJcallShutter.ALLOW_EVERYTHING && !jcallShutter.permits(owner.replace('/', '.'), call))
-						throw new LzVMCallNotFoundException(LzOpcodes.opNameIndexed(i, op) + ": jcall was not allowed by the compiler's jcall shutter.");
+					if(jcallShutter != LzJCallShutter.ALLOW_EVERYTHING && !jcallShutter.permits(owner.replace('/', '.'), call))
+						throw new LzVMCallNotFoundException(LzOpcodes.opNameIndexed(i, op) + ": jcall to " + owner + " was not allowed by the compilers jcall shutter.");
 					
 					insn.add(mCall(
 							INVOKESTATIC,

@@ -4,7 +4,7 @@ import dev.zeith.lzvm.exception.LzVMException;
 import dev.zeith.lzvm.jvm.LzMath;
 import dev.zeith.lzvm.molang.compiler.*;
 import dev.zeith.lzvm.molang.expression.*;
-import dev.zeith.lzvm.program.*;
+import dev.zeith.lzvm.program.LzCallInsn;
 
 import java.util.*;
 import java.util.function.*;
@@ -15,7 +15,6 @@ import static dev.zeith.lzvm.jvm.LzMath.*;
 import static dev.zeith.lzvm.molang.compiler.MoLangCompiler.*;
 import static dev.zeith.lzvm.molang.compiler.libs.ICompilerLibrary.*;
 import static dev.zeith.lzvm.op.LzOpcodes.*;
-import static dev.zeith.lzvm.op.LzOpcodes.MUL;
 import static dev.zeith.lzvm.program.ArgType.DOUBLE;
 import static dev.zeith.lzvm.program.LzCallInsn.ofDbl;
 
@@ -25,12 +24,18 @@ public enum MoMathLibrary
 	INSTANCE;
 	
 	public final Map<LzCallInsn, IMoFunctionCallTransformer> callTransformers;
+	public final Set<String> requiredClasses;
 	public final Map<String, Function<NameExpression, MLExpression>> nameTransformers;
 	
 	MoMathLibrary()
 	{
 		Map<LzCallInsn, IMoFunctionCallTransformer> c = new HashMap<>();
 		Map<String, Function<NameExpression, MLExpression>> nt = new HashMap<>();
+		Set<String> reqCls = new HashSet<>();
+		
+		reqCls.add(MoLangEasing.class.getName());
+		reqCls.add(Math.class.getName());
+		reqCls.add(MoMathLibrary.class.getName());
 		
 		final String JMath = "java/lang/Math";
 		final String JMoMath = getClass().getName().replace('.', '/');
@@ -97,6 +102,7 @@ public enum MoMathLibrary
 		for(Map.Entry<String, Function<NameExpression, MLExpression>> e : nt.entrySet()) nt2.put("math." + e.getKey(), e.getValue());
 		this.callTransformers = Collections.unmodifiableMap(c2);
 		this.nameTransformers = Collections.unmodifiableMap(nt2);
+		this.requiredClasses = Collections.unmodifiableSet(reqCls);
 		
 		// https://bedrock.dev/docs/stable/Molang#Math%20Functions
 //		ensureTransformersExist(
@@ -169,6 +175,7 @@ public enum MoMathLibrary
 	{
 		nameTransformers.forEach(c::registerName);
 		callTransformers.forEach(c::registerTransformer);
+		requiredClasses.forEach(c::registerRequiredClass);
 	}
 	
 	private void ensureTransformersExist(String... names)
