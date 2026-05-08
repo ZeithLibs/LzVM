@@ -1,7 +1,7 @@
 import dev.zeith.lzvm.*;
+import dev.zeith.lzvm.api.*;
 import dev.zeith.lzvm.jvm.*;
 import dev.zeith.lzvm.molang.compiler.MoLangCompiler;
-import dev.zeith.lzvm.molang.compiler.libs.MoMathLibrary;
 import dev.zeith.lzvm.molang.expression.MLExpression;
 import dev.zeith.lzvm.op.LzVarOp;
 import dev.zeith.lzvm.program.*;
@@ -40,7 +40,8 @@ public class TestMoLang
 		double[] time = new double[1];
 		vars.registerVar("query.anim_time", LzVarOp.readOnly(() -> time[0]));
 		
-		MoLangCompiler compiler = new MoLangCompiler();
+		LzCompilerManager compilerManager = new LzCompilerManager();
+		MoLangCompiler compiler = (MoLangCompiler) compilerManager.findByLanguage("molang").newAssembler();
 		
 		ArrayList<MLExpression> expressions = compiler.parse(expression);
 		LzProgramBody compiledProgram = compiler.compile(expressions);

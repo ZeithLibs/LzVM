@@ -1,5 +1,6 @@
+import dev.zeith.lzvm.api.*;
 import dev.zeith.lzvm.jvm.*;
-import dev.zeith.lzvm.molang.compiler.*;
+import dev.zeith.lzvm.molang.compiler.IMoFunctionCallTransformer;
 import dev.zeith.lzvm.molang.compiler.libs.MoLangEasing;
 import dev.zeith.lzvm.op.LzVarOp;
 import dev.zeith.lzvm.program.LzCallInsn;
@@ -8,7 +9,7 @@ import motest.util.LzTestRunner;
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.*;
+import java.io.File;
 import java.util.*;
 
 public class EaseGraphGenerator
@@ -18,7 +19,9 @@ public class EaseGraphGenerator
 		Map<LzCallInsn, IMoFunctionCallTransformer> binds = new HashMap<>();
 		MoLangEasing.bind(binds);
 		
-		MoLangCompiler mocomp = new MoLangCompiler();
+		LzCompilerManager compilerManager = new LzCompilerManager();
+		LzCompiler mocomp = compilerManager.findByLanguage("molang").newAssembler();
+		
 		LzJvmCompiler comp = new LzJvmCompiler();
 		
 		IClassDefiner def = new LzJVM.LzClassLoader();
@@ -41,6 +44,16 @@ public class EaseGraphGenerator
 			{
 				throw new RuntimeException(e);
 			}
+		}
+		
+		String expr = "lerp";
+		try
+		{
+			LzFactory fac = mocomp.parseFactory(comp, "math." + expr + "(0, 1, q.x)", def);
+			ImageIO.write(generate(fac, 256), "png", new File(gdir, expr + ".png"));
+		} catch(Exception e)
+		{
+			throw new RuntimeException(e);
 		}
 	}
 	
