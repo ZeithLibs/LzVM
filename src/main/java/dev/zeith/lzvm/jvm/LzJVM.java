@@ -2,9 +2,11 @@ package dev.zeith.lzvm.jvm;
 
 import dev.zeith.lzvm.program.LzProgramBody;
 import lombok.SneakyThrows;
+import lombok.experimental.UtilityClass;
 
 import java.util.UUID;
 
+@UtilityClass
 public class LzJVM
 {
 	@SneakyThrows

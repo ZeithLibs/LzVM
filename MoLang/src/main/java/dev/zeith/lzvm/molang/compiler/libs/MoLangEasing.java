@@ -23,7 +23,7 @@ public class MoLangEasing
 	{
 	}
 	
-	static void bind(Map<LzCallInsn, IMoFunctionCallTransformer> c)
+	public static void bind(Map<LzCallInsn, IMoFunctionCallTransformer> c)
 	{
 		final String JMoEasing = MoLangEasing.class.getName().replace('.', '/');
 		
