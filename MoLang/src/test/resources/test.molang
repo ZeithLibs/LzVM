@@ -23,6 +23,8 @@ t.sin      = math.round(math.sin(90)) == 1;
 t.sqrt     = math.sqrt(25) == 5;
 t.trunc    = math.trunc(1.9) == 1 && math.trunc(-1.9) == -1;
 
+t.TestVal = t.GetVal + 1;
+
 t.random =
     math.random(5, 10) >= 5 &&
     math.random(5, 10) <= 10;

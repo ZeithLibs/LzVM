@@ -166,6 +166,9 @@ public class LzJvmCompiler
 			return local;
 		};
 		
+		Set<String> varsToReset = new HashSet<>();
+		Set<String> initializedVars = new HashSet<>();
+		
 		Stack<ArgType> stack = new Stack<>();
 		
 		// --- Emit instructions ---
@@ -404,6 +407,9 @@ public class LzJvmCompiler
 					));
 					
 					stack.push(ArgType.DOUBLE);
+					
+					if(!initializedVars.contains(nameStr))
+						varsToReset.add(nameStr);
 				}
 				break;
 				
@@ -438,6 +444,8 @@ public class LzJvmCompiler
 							"set",
 							"(D)V"
 					));
+					
+					initializedVars.add(nameStr);
 				}
 				break;
 				
@@ -520,6 +528,9 @@ public class LzJvmCompiler
 					));
 					
 					stack.push(ArgType.DOUBLE);
+					
+					if(!initializedVars.contains(nameStr))
+						varsToReset.add(nameStr);
 				}
 				break;
 				
@@ -577,6 +588,8 @@ public class LzJvmCompiler
 							"set",
 							"(DD)V"
 					));
+					
+					initializedVars.add(nameStr);
 				}
 				break;
 				
@@ -584,6 +597,16 @@ public class LzJvmCompiler
 					throw new IllegalStateException("Unknown opcode: " + LzOpcodes.opNameIndexed(i, op));
 			}
 		}
+		
+		InsnList resetVars = new InsnList();
+		for(String nameStr : varsToReset)
+		{
+			FieldNode varHolder = varGetter.apply(nameStr);
+			resetVars.add(new VarInsnNode(ALOAD, 0)); // this
+			resetVars.add(new FieldInsnNode(GETFIELD, cn.name, varHolder.name, varHolder.desc)); //.var
+			resetVars.add(mCall(INVOKEINTERFACE, LzVarOp, "reset", "()V")); // .reset()
+		}
+		insn.insert(resetVars);
 		
 		// At the end, always return 0
 		insn.add(new LdcInsnNode(0.0));

@@ -100,6 +100,8 @@ public class LzVM
 		
 		int ptr = -1;
 		
+		Set<String> initializedVars = new HashSet<>();
+		
 		String vinsn = null;
 		LzCallInsn cinsn = null;
 		int i = 0, op = -1, expect = 0;
@@ -221,7 +223,9 @@ public class LzVM
 					{
 						int varIdx = insn[++i];
 						vinsn = sConsts[varIdx];
-						stack[++ptr] = getVar.apply(vinsn).get();
+						LzVarOp var = getVar.apply(vinsn);
+						if(initializedVars.contains(vinsn)) var.reset();
+						stack[++ptr] = var.get();
 					}
 					break;
 					
@@ -231,6 +235,7 @@ public class LzVM
 						int varIdx = insn[++i];
 						vinsn = sConsts[varIdx];
 						getVar.apply(vinsn).set(coerce(stack[ptr--]));
+						initializedVars.add(vinsn);
 					}
 					break;
 					
@@ -278,7 +283,9 @@ public class LzVM
 						double index = coerce(stack[ptr--]);
 						int varIdx = insn[++i];
 						vinsn = sConsts[varIdx];
-						stack[++ptr] = getVar.apply(vinsn).get(index);
+						LzVarOp var = getVar.apply(vinsn);
+						if(initializedVars.contains(vinsn)) var.reset();
+						stack[++ptr] = var.get(index);
 					}
 					break;
 					
@@ -289,6 +296,7 @@ public class LzVM
 						int varIdx = insn[++i];
 						vinsn = sConsts[varIdx];
 						getVar.apply(vinsn).set(index, coerce(stack[ptr--]));
+						initializedVars.add(vinsn);
 					}
 					break;
 					

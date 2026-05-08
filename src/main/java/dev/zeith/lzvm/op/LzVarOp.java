@@ -37,12 +37,16 @@ public interface LzVarOp
 			}
 		};
 	}
-	
 	static LzVarOp readWrite()
+	{
+		return readWrite(0);
+	}
+	
+	static LzVarOp readWrite(double defaultValue)
 	{
 		return new LzVarOp()
 		{
-			double v;
+			double v = defaultValue;
 			
 			@Override
 			public double get()
@@ -59,12 +63,20 @@ public interface LzVarOp
 			}
 			
 			@Override
+			public void reset()
+			{
+				v = defaultValue;
+			}
+			
+			@Override
 			public String toString()
 			{
 				return "rw(" + v + ")";
 			}
 		};
 	}
+	
+	default void reset() {}
 	
 	double get()
 			throws LzVMOperationNotSupportedException;
