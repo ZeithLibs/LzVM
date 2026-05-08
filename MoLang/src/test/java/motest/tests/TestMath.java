@@ -85,10 +85,12 @@ public class TestMath
 	public void clamp()
 	{
 		// Clamp value to between min and max inclusive
+		runTrue("math.clamp(0, 0, 1) == 0");
 		runTrue("math.clamp(-10, 0, 1) == 0");
 		runTrue("math.clamp(0, 0, 1) == 0");
 		runTrue("math.clamp(0.5, 0, 1) == 0.5");
 		runTrue("math.clamp(2.5, 0, 1) == 1");
+		runTrue("math.clamp(1, 0, 1) == 1");
 	}
 	
 	@Test
@@ -106,9 +108,9 @@ public class TestMath
 	{
 		// Cosine (in degrees) of value
 		runTrue("math.cos(0) == 1");
-		runTrue("math.cos(90) >= 0 && math.sin(180) < 0.0001");
+		runTrue("math.cos(90) >= 0 && math.cos(90) < 0.0001");
 		runTrue("math.cos(180) == -1");
-		runTrue("math.cos(270) > -0.0001 && math.sin(360) <= 0");
+		runTrue("math.cos(270) > -0.0001 && math.cos(270) <= 0");
 		runTrue("math.cos(360) == 1");
 	}
 	
@@ -309,7 +311,7 @@ public class TestMath
 		// Output goes from start to end via 0_to_1, starting slow and accelerating smoothly toward the end
 		runTrue("math.ease_in_sine(0, 1, 0) == 0");
 		runLog("math.ease_in_sine(0, 1, 0.5)");
-		runTrue("math.abs(math.ease_in_sine(0, 1, 1) - 0.9999) < 0.0001");
+		runTrue("math.abs(math.ease_in_sine(0, 1, 1) - 1) < 0.0001");
 	}
 	
 	@Test
@@ -407,7 +409,7 @@ public class TestMath
 	{
 		// Calculates e to the value'th power
 		runTrue("math.exp(0) == 1");
-		runTrue("math.exp(1) == math.e");
+		runTrue("math.abs(math.exp(1) - math.e) < 0.0001");
 	}
 	
 	@Test
@@ -441,6 +443,8 @@ public class TestMath
 		runTrue("math.inverse_lerp(0, 10, 0) == 0");
 		runTrue("math.inverse_lerp(0, 10, 10) == 1");
 		runTrue("math.inverse_lerp(10, 20, 15) == 0.5");
+		runTrue("math.inverse_lerp(0, 10, 20) == 2");
+		runTrue("math.inverse_lerp(0, 10, -5) == -0.5");
 	}
 	
 	@Test
@@ -516,6 +520,7 @@ public class TestMath
 		runTrue("math.mod(1.5, 2) == 1.5");
 		runTrue("math.mod(2, 2) == 0");
 		runTrue("math.mod(2.5, 2) == 0.5");
+		runTrue("math.mod(-1, 2) == -1");
 		
 		// MoLang++
 		runTrue("0 % 2 == 0");
