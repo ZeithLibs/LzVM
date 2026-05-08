@@ -94,25 +94,4 @@ public interface LzVarOp
 	{
 		throw new LzVMOperationNotSupportedException();
 	}
-	
-	interface ReadonlyLzVarOp
-			extends LzVarOp
-	{
-		@Override
-		default void set(double value)
-				throws LzVMOperationNotSupportedException
-		{
-			throw new LzVMOperationNotSupportedException();
-		}
-	}
-	
-	static void set(double v, LzVarOp var)
-	{
-		var.set(v);
-	}
-	
-	static void set(double index, double v, LzVarOp var)
-	{
-		var.set(index, v);
-	}
 }

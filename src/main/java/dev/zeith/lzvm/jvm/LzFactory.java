@@ -6,6 +6,15 @@ public interface LzFactory
 {
 	LzExpression instantiate(LzVariableStore store);
 	
+	static LzExpression[] instantiate(LzVariableStore store, LzFactory... factories)
+	{
+		if(factories == null) return null;
+		if(factories.length == 0) return LzExpression.EMPTY_EXPRESSION;
+		LzExpression[] expressions = new LzExpression[factories.length];
+		for(int i = 0; i < factories.length; i++) expressions[i] = factories[i].instantiate(store);
+		return expressions;
+	}
+	
 	default boolean isGenerated()
 	{
 		return getClass().isAnnotationPresent(Generated.class);

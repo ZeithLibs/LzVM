@@ -41,7 +41,6 @@ public class TestMoLang
 		vars.registerVar("query.anim_time", LzVarOp.readOnly(() -> time[0]));
 		
 		MoLangCompiler compiler = new MoLangCompiler();
-		compiler.linkLibrary(MoMathLibrary.INSTANCE);
 		
 		ArrayList<MLExpression> expressions = compiler.parse(expression);
 		LzProgramBody compiledProgram = compiler.compile(expressions);

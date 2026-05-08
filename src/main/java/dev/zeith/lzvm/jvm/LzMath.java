@@ -1,5 +1,7 @@
 package dev.zeith.lzvm.jvm;
 
+import dev.zeith.lzvm.op.LzVarOp;
+
 public class LzMath
 {
 	public static final double DEG_TO_RAD = (Math.PI / 180);
@@ -108,5 +110,15 @@ public class LzMath
 	public static String concs(Object a, Object b)
 	{
 		return String.valueOf(a).concat(String.valueOf(b));
+	}
+	
+	public static void set(double v, LzVarOp var)
+	{
+		var.set(v);
+	}
+	
+	public static void set(double index, double v, LzVarOp var)
+	{
+		var.set(index, v);
 	}
 }

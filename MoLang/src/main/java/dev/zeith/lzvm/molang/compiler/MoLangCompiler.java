@@ -98,7 +98,7 @@ public class MoLangCompiler
 		{
 			OptionalDouble exp = parsed.get(0).asOptimizedDouble();
 			if(exp.isPresent())
-				return new LzExpression.ConstantExpression(exp.getAsDouble());
+				return new ConstantExpression(exp.getAsDouble());
 		}
 		return LzJVM.compile(compiler, compile(parsed), 0, definer);
 	}

@@ -106,7 +106,7 @@ public class TestBulkBedrockParsing
 				LzFactory lzf = compiler.parseFactory(jvmCompiler, ml,  new LzJVM.LzClassLoader());
 				LzExpression expr = lzf.instantiate(STORE);
 				boolean constant = false;
-				if(expr instanceof LzExpression.ConstantExpression) constant = true;
+				if(expr instanceof ConstantExpression) constant = true;
 				expr.get();
 				System.out.println(ml + " = " + expr.get() + (constant ? " (CONST)" : ""));
 			} catch(Exception e)
