@@ -3,7 +3,6 @@ import dev.zeith.lzvm.jvm.*;
 import dev.zeith.lzvm.molang.compiler.MoLangCompiler;
 import dev.zeith.lzvm.molang.compiler.libs.MoMathLibrary;
 import dev.zeith.lzvm.molang.expression.MLExpression;
-import dev.zeith.lzvm.molang.tokenizer.Tokenizer;
 import dev.zeith.lzvm.op.LzVarOp;
 import dev.zeith.lzvm.program.*;
 import dev.zeith.lzvm.program.io.*;
@@ -40,8 +39,6 @@ public class TestMoLang
 		LzVMVariableStore vars = new LzVMVariableStore();
 		double[] time = new double[1];
 		vars.registerVar("query.anim_time", LzVarOp.readOnly(() -> time[0]));
-		vars.registerVar("variable.test", LzVarOp.readWrite());
-		vars.registerVar("variable.test2", LzVarOp.readWrite());
 		
 		MoLangCompiler compiler = new MoLangCompiler();
 		compiler.linkLibrary(MoMathLibrary.INSTANCE);
@@ -96,10 +93,9 @@ public class TestMoLang
 		
 		LzVM vm = new LzVM();
 		
-		while(true)
+		for(int i = 0; i < 5 * 4; i++)
 		{
-			double elapsed = (System.currentTimeMillis() - start) / 1000D;
-			if(elapsed > 5) break;
+			double elapsed = i / 4D;
 			double val = expr.get();
 			double val2 = vm.interpret(vars, compiledProgram, stack);
 			time[0] = elapsed;
@@ -108,6 +104,7 @@ public class TestMoLang
 				System.out.println("Time: " + String.format("%.04f", elapsed) + "\tValue: JVM(" + String.format("%.04f", val) + ")\tINTERPRET(" + String.format("%.04f", val2) + ")");
 				lastLog = elapsed;
 			}
+			Thread.sleep(250L);
 		}
 	}
 }

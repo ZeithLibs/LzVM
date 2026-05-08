@@ -111,14 +111,14 @@ public class LzProgramBuilder
 		return addInsn(-100); // filled later
 	}
 	
-	public LzProgramBuilder addJumpIfFalse(LzLabel label)
-	{
-		return addJump(LzOpcodes.JUMP_IF_FALSE, label);
-	}
-	
 	public LzProgramBuilder addJumpIfTrue(LzLabel label)
 	{
 		return addJump(LzOpcodes.JUMP_IF_TRUE, label);
+	}
+	
+	public LzProgramBuilder addJumpIfFalse(LzLabel label)
+	{
+		return addJump(LzOpcodes.JUMP_IF_FALSE, label);
 	}
 	
 	public int allocLocal()

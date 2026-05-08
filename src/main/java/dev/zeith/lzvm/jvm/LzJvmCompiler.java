@@ -20,6 +20,7 @@ public class LzJvmCompiler
 	public static final String LzCallOp = dev.zeith.lzvm.op.LzCallOp.class.getName().replace('.', '/');
 	public static final String LzGenerated = Generated.class.getName().replace('.', '/');
 	public static final String LzFMath = LzMath.class.getName().replace('.', '/');
+	public static final String Math = Math.class.getName().replace('.', '/');
 	
 	public static final String L_LzExpression = "L" + LzExpression + ";";
 	public static final String L_LzVariableStore = "L" + LzVariableStore + ";";
@@ -421,28 +422,13 @@ public class LzJvmCompiler
 					String nameStr = body.sConstTable[idx];
 					FieldNode varHolder = varGetter.apply(nameStr);
 					
-					boolean idxIsConst = false;
-					AbstractInsnNode index = insn.getLast();
-					if(index instanceof LdcInsnNode)
-					{
-						idxIsConst = true;
-						insn.remove(index);
-					}
-					int loc = -1;
-					if(!idxIsConst)
-					{
-						loc = newLocal.getAsInt();
-						insn.add(new VarInsnNode(DSTORE, loc));
-					}
-					
 					insn.add(new VarInsnNode(ALOAD, 0));
 					insn.add(new FieldInsnNode(GETFIELD, cn.name, varHolder.name, varHolder.desc));
-					insn.add(idxIsConst ? index : new VarInsnNode(DLOAD, loc));
 					insn.add(mCall(
-							INVOKEINTERFACE,
+							INVOKESTATIC,
 							LzVarOp,
 							"set",
-							"(D)V"
+							"(D" + L_LzVarOp + ")V"
 					));
 					
 					initializedVars.add(nameStr);
@@ -462,7 +448,7 @@ public class LzJvmCompiler
 				}
 				break;
 				
-				case LzOpcodes.JUMP_IF_TRUE:
+				case LzOpcodes.JUMP_IF_FALSE:
 				{
 					int target = code[++i];
 					insn.add(mCall(INVOKESTATIC, LzFMath, "isNotZero", "(D)Z"));
@@ -470,7 +456,7 @@ public class LzJvmCompiler
 				}
 				break;
 				
-				case LzOpcodes.JUMP_IF_FALSE:
+				case LzOpcodes.JUMP_IF_TRUE:
 				{
 					int target = code[++i];
 					insn.add(mCall(INVOKESTATIC, LzFMath, "isZero", "(D)Z"));
@@ -503,28 +489,13 @@ public class LzJvmCompiler
 					String nameStr = body.sConstTable[idx];
 					FieldNode varHolder = varGetter.apply(nameStr);
 					
-					boolean idxIsConst = false;
-					AbstractInsnNode index = insn.getLast();
-					if(index instanceof LdcInsnNode)
-					{
-						idxIsConst = true;
-						insn.remove(index);
-					}
-					int loc = -1;
-					if(!idxIsConst)
-					{
-						loc = newLocal.getAsInt();
-						insn.add(new VarInsnNode(DSTORE, loc));
-					}
-					
 					insn.add(new VarInsnNode(ALOAD, 0));
 					insn.add(new FieldInsnNode(GETFIELD, cn.name, varHolder.name, varHolder.desc));
-					insn.add(idxIsConst ? index : new VarInsnNode(DLOAD, loc));
 					insn.add(mCall(
-							INVOKEINTERFACE,
+							INVOKESTATIC,
 							LzVarOp,
 							"get",
-							"(D)D"
+							"(D" + L_LzVarOp + ")D"
 					));
 					
 					stack.push(ArgType.DOUBLE);
@@ -544,52 +515,34 @@ public class LzJvmCompiler
 					String nameStr = body.sConstTable[idx];
 					FieldNode varHolder = varGetter.apply(nameStr);
 					
-					boolean idxIsConst = false;
-					boolean valIsConst = false;
-					
-					AbstractInsnNode value = insn.getLast();
-					if(value instanceof LdcInsnNode)
-					{
-						valIsConst = true;
-						insn.remove(value);
-					}
-					
-					AbstractInsnNode index = insn.getLast();
-					if(valIsConst && index instanceof LdcInsnNode)
-					{
-						idxIsConst = true;
-						insn.remove(index);
-					}
-					
-					int valueLocal = -1;
-					int indexLocal = -1;
-					
-					if(!valIsConst)
-					{
-						valueLocal = newLocal.getAsInt();
-						insn.add(new VarInsnNode(DSTORE, valueLocal));
-					}
-					
-					if(!idxIsConst)
-					{
-						indexLocal = newLocal.getAsInt();
-						insn.add(new VarInsnNode(DSTORE, indexLocal));
-					}
-					
 					insn.add(new VarInsnNode(ALOAD, 0));
 					insn.add(new FieldInsnNode(GETFIELD, cn.name, varHolder.name, varHolder.desc));
-					
-					insn.add(idxIsConst ? index : new VarInsnNode(DLOAD, indexLocal));
-					insn.add(valIsConst ? value : new VarInsnNode(DLOAD, valueLocal));
-					
 					insn.add(mCall(
-							INVOKEINTERFACE,
+							INVOKESTATIC,
 							LzVarOp,
 							"set",
-							"(DD)V"
+							"(DD" + L_LzVarOp + ")V"
 					));
 					
 					initializedVars.add(nameStr);
+				}
+				break;
+				
+				case LzOpcodes.MIN:
+				{
+					tryPop(i, op, stack, ArgType.DOUBLE);
+					tryPop(i, op, stack, ArgType.DOUBLE);
+					insn.add(mCall(INVOKESTATIC, Math, "min", "(DD)D"));
+					stack.push(ArgType.DOUBLE);
+				}
+				break;
+				
+				case LzOpcodes.MAX:
+				{
+					tryPop(i, op, stack, ArgType.DOUBLE);
+					tryPop(i, op, stack, ArgType.DOUBLE);
+					insn.add(mCall(INVOKESTATIC, Math, "max", "(DD)D"));
+					stack.push(ArgType.DOUBLE);
 				}
 				break;
 				
@@ -600,17 +553,21 @@ public class LzJvmCompiler
 		
 		InsnList resetVars = new InsnList();
 		for(String nameStr : varsToReset)
-		{
-			FieldNode varHolder = varGetter.apply(nameStr);
-			resetVars.add(new VarInsnNode(ALOAD, 0)); // this
-			resetVars.add(new FieldInsnNode(GETFIELD, cn.name, varHolder.name, varHolder.desc)); //.var
-			resetVars.add(mCall(INVOKEINTERFACE, LzVarOp, "reset", "()V")); // .reset()
-		}
+			if(nameStr.startsWith("temp.")) // we only reset temp vars
+			{
+				FieldNode varHolder = varGetter.apply(nameStr);
+				resetVars.add(new VarInsnNode(ALOAD, 0)); // this
+				resetVars.add(new FieldInsnNode(GETFIELD, cn.name, varHolder.name, varHolder.desc)); //.var
+				resetVars.add(mCall(INVOKEINTERFACE, LzVarOp, "reset", "()V")); // .reset()
+			}
 		insn.insert(resetVars);
 		
 		// At the end, always return 0
-		insn.add(new LdcInsnNode(0.0));
-		insn.add(new InsnNode(DRETURN));
+		if(insn.getLast().getOpcode() != DRETURN)
+		{
+			insn.add(new LdcInsnNode(0.0));
+			insn.add(new InsnNode(DRETURN));
+		}
 		//</editor-fold>
 		
 		//<editor-fold desc="instantiate(LzVariableStore)LzExpression">
@@ -669,7 +626,7 @@ public class LzJvmCompiler
 		cn.methods.add(instantiate);
 		//</editor-fold>
 		
-		ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+		ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
 		cn.accept(cw);
 		return cw.toByteArray();
 	}

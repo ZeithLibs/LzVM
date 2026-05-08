@@ -4,8 +4,6 @@ import dev.zeith.lzvm.molang.compiler.MoLangCompiler;
 import dev.zeith.lzvm.op.LzOpcodes;
 import dev.zeith.lzvm.program.*;
 
-import java.util.function.Consumer;
-
 public class LoopExpression
 		extends MLExpression
 {
@@ -61,7 +59,7 @@ public class LoopExpression
 		if(loopCount == -1) builder.addConstD(loopCountD);
 		else builder.addLoad(loopCount);
 		builder.addInsn(LzOpcodes.LESS_THAN);
-		builder.addJumpIfTrue(afterLoop);
+		builder.addJumpIfFalse(afterLoop);
 		
 		// Loop code
 		this.children[1].toLz(compiler, builder, subScope);

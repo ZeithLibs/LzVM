@@ -31,11 +31,9 @@ public class LzProgramBody
 			if(!skipArgs)
 			{
 				for(int k = 0; k < extra; k++)
-				{
-					int v = insnList[++i];
-					args[k] = getConstant(ins, k, v);
-				}
-			} else i += extra;
+					args[k] = getConstant(ins, k, i);
+			}
+			i += extra;
 			visitor.visitInstruction(j, ins, args);
 		}
 	}
@@ -74,8 +72,9 @@ public class LzProgramBody
 		return c == null ? "null" : c.toString();
 	}
 	
-	public Object getConstant(int insn, int ordinal, int value)
+	public Object getConstant(int insn, int ordinal, int programIndex)
 	{
+		int value = insnList[programIndex + 1 + ordinal];
 		switch(insn)
 		{
 			case LzOpcodes.CONST:

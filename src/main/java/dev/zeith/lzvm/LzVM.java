@@ -15,6 +15,7 @@ public class LzVM
 	protected final ClassLoader loader;
 	protected final Map<String, Map<LzCallInsn, Optional<Method>>> jvmCache = new ConcurrentHashMap<>();
 	private LzJCallShutter jcallShutter = LzJCallShutter.ALLOW_EVERYTHING;
+	public boolean logInterpretSteps = false;
 	
 	public LzVM(ClassLoader loader)
 	{
@@ -71,6 +72,11 @@ public class LzVM
 		return interpret(vars, program.body, stack);
 	}
 	
+	protected void log(String str)
+	{
+		System.out.println(str);
+	}
+	
 	public double interpret(LzVariableStore vars, LzProgramBody program, LzProgramStack pStack)
 			throws LzVMException
 	{
@@ -102,6 +108,7 @@ public class LzVM
 		
 		Set<String> initializedVars = new HashSet<>();
 		
+		final boolean logInterpretSteps = this.logInterpretSteps;
 		String vinsn = null;
 		LzCallInsn cinsn = null;
 		int i = 0, op = -1, expect = 0;
@@ -110,6 +117,15 @@ public class LzVM
 			for(; i < insn.length; i++)
 			{
 				op = insn[i];
+				
+				if(logInterpretSteps)
+				{
+					String[] args = new String[LzOpcodes.EXTRA_SHIFTS[op]];
+					for(int j = 0; j < args.length; j++)
+						args[j] = LzProgramBody.constToString(program.getConstant(op, j, i));
+					log("Exec " + LzOpcodes.opNameIndexed(i, op) + " " + Arrays.toString(args));
+				}
+				
 				switch(op)
 				{
 					case LzOpcodes.RETURN:
@@ -193,6 +209,8 @@ public class LzVM
 					case LzOpcodes.COALESCE:
 					case LzOpcodes.AND:
 					case LzOpcodes.OR:
+					case LzOpcodes.MIN:
+					case LzOpcodes.MAX:
 					{
 						expect = 2;
 						double right = coerce(stack[ptr--]);
@@ -224,7 +242,7 @@ public class LzVM
 						int varIdx = insn[++i];
 						vinsn = sConsts[varIdx];
 						LzVarOp var = getVar.apply(vinsn);
-						if(initializedVars.contains(vinsn)) var.reset();
+						if(!initializedVars.contains(vinsn)) var.reset();
 						stack[++ptr] = var.get();
 					}
 					break;
@@ -249,18 +267,20 @@ public class LzVM
 					}
 					break;
 					
-					case LzOpcodes.JUMP_IF_TRUE:
+					case LzOpcodes.JUMP_IF_FALSE:
 					{
 						int lblIdx = insn[++i];
-						if(LzMath.isZero(coerce(stack[ptr--])))
+						Object o = stack[ptr--];
+						if(LzMath.isZero(coerce(o)))
 							i = labelCords.get(lblIdx);
 					}
 					break;
 					
-					case LzOpcodes.JUMP_IF_FALSE:
+					case LzOpcodes.JUMP_IF_TRUE:
 					{
 						int lblIdx = insn[++i];
-						if(LzMath.isNotZero(coerce(stack[ptr--])))
+						Object o = stack[ptr--];
+						if(LzMath.isNotZero(coerce(o)))
 							i = labelCords.get(lblIdx);
 					}
 					break;
@@ -284,7 +304,7 @@ public class LzVM
 						int varIdx = insn[++i];
 						vinsn = sConsts[varIdx];
 						LzVarOp var = getVar.apply(vinsn);
-						if(initializedVars.contains(vinsn)) var.reset();
+						if(!initializedVars.contains(vinsn)) var.reset();
 						stack[++ptr] = var.get(index);
 					}
 					break;

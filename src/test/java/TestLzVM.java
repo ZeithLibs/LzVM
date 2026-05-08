@@ -68,7 +68,7 @@ public class TestLzVM
 				
 				.addLoad(0).addConstD(5).addInsn(LzOpcodes.GREATER_THAN)
 				.addInsn(LzOpcodes.NOT)
-				.addJumpIfFalse(jumpTarget)
+				.addJumpIfTrue(jumpTarget)
 				// if x > 5 then execute this block
 				.addConstD(5)
 				.addInsn(LzOpcodes.RETURN)

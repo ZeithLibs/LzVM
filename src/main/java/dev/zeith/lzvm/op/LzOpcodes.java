@@ -35,14 +35,16 @@ public interface LzOpcodes
 	int WRITE = 26; // Pop the double from stack and write it into LzVariableStore (next insn points to a string name in varTable)
 	int LABEL = 27; // Marks a label that the GOTO insn can jump to. All labels get their starting at 0.
 	int JUMP = 28; // Jumps to the label by the next insn index. (the index 0 always points to the first label)
-	int JUMP_IF_TRUE = 29;
-	int JUMP_IF_FALSE = 30;
+	int JUMP_IF_FALSE = 29;
+	int JUMP_IF_TRUE = 30;
 	int TO_STRING = 31; // Converts any object on the stack into a string
 	int POP = 32;
 	int READ_INDEXED = 33;
 	int WRITE_INDEXED = 34;
+	int MIN = 35;
+	int MAX = 36;
 	
-	int I_LAST = WRITE_INDEXED;
+	int I_LAST = MAX;
 	int I_COUNT = I_LAST + 1;
 	
 	int[] EXTRA_SHIFTS = OpCodeIndexer.computeExtraShifts();
@@ -76,8 +78,8 @@ public interface LzOpcodes
 			c[READ] = 1;
 			c[WRITE] = 1;
 			c[JUMP] = 1;
-			c[JUMP_IF_TRUE] = 1;
 			c[JUMP_IF_FALSE] = 1;
+			c[JUMP_IF_TRUE] = 1;
 			c[READ_INDEXED] = 1;
 			c[WRITE_INDEXED] = 1;
 			return c;
@@ -108,10 +110,12 @@ public interface LzOpcodes
 			c[OR] = -1;
 			c[READ] = 1;
 			c[WRITE] = -1;
-			c[JUMP_IF_TRUE] = -1;
 			c[JUMP_IF_FALSE] = -1;
+			c[JUMP_IF_TRUE] = -1;
 			c[POP] = -1;
 			c[WRITE_INDEXED] = -2;
+			c[MIN] = -1;
+			c[MAX] = -1;
 			
 			// calls are dynamic in nature and the argument count is always followed by the instruction
 			c[JCALL] = -1;

@@ -37,6 +37,7 @@ public interface LzVarOp
 			}
 		};
 	}
+	
 	static LzVarOp readWrite()
 	{
 		return readWrite(0);
@@ -103,5 +104,15 @@ public interface LzVarOp
 		{
 			throw new LzVMOperationNotSupportedException();
 		}
+	}
+	
+	static void set(double v, LzVarOp var)
+	{
+		var.set(v);
+	}
+	
+	static void set(double index, double v, LzVarOp var)
+	{
+		var.set(index, v);
 	}
 }

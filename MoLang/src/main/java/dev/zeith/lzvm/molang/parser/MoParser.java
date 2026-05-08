@@ -69,6 +69,8 @@ public class MoParser
 	private final List<Token> readTokens = new ArrayList<>();
 	private final Map<String, String> aliases;
 	
+	public int loopCountLimiter = 1024;
+	
 	public MoParser(Map<String, String> aliases, Tokenizer iterator)
 	{
 		this.aliases = aliases;

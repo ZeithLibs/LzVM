@@ -58,8 +58,8 @@ public enum MoMathLibrary
 		c.put(dUnaryOperator("ln"), argsAndExtraPure(duOpt(Math::log), b -> b.addJCall(JMath, dUnaryOperator("log"))));
 		c.put(dUnaryOperator("exp"), argsAndExtraPure(duOpt(Math::exp), b -> b.addJCall(JMath, dUnaryOperator("exp"))));
 		c.put(dUnaryOperator("floor"), argsAndExtraPure(duOpt(Math::floor), b -> b.addJCall(JMath, dUnaryOperator("floor"))));
-		c.put(dBinaryOperator("max"), argsAndExtraPure(dbOpt(Math::max), b -> b.addJCall(JMath, dBinaryOperator("max"))));
-		c.put(dBinaryOperator("min"), argsAndExtraPure(dbOpt(Math::min), b -> b.addJCall(JMath, dBinaryOperator("min"))));
+		c.put(dBinaryOperator("max"), argsAndExtraPure(dbOpt(Math::max), b -> b.addInsn(MAX)));
+		c.put(dBinaryOperator("min"), argsAndExtraPure(dbOpt(Math::min), b -> b.addInsn(MIN)));
 		c.put(dBinaryOperator("copy_sign"), argsAndExtraPure(dbOpt(Math::copySign), b -> b.addJCall(JMath, dBinaryOperator("copySign"))));
 		
 		// MoMath functions

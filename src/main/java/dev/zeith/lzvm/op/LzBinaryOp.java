@@ -121,6 +121,22 @@ public enum LzBinaryOp
 					return LzMath.isZero(left) && LzMath.isZero(right) ? 0.0 : 1.0;
 				}
 			},
+	MIN(LzOpcodes.MIN, "max")
+			{
+				@Override
+				public double operate(double left, double right)
+				{
+					return Math.min(left, right);
+				}
+			},
+	MAX(LzOpcodes.MAX, "max")
+			{
+				@Override
+				public double operate(double left, double right)
+				{
+					return Math.max(left, right);
+				}
+			},
 	;
 	
 	private final int opcode;
