@@ -2,6 +2,7 @@ import dev.zeith.lzvm.*;
 import dev.zeith.lzvm.jvm.*;
 import dev.zeith.lzvm.op.*;
 import dev.zeith.lzvm.program.*;
+import dev.zeith.lzvm.vm.*;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -89,7 +90,7 @@ public class TestLzVM
 		
 		LzProgramBody genProg = gen1();
 		LzJvmCompiler jvmc = new LzJvmCompiler();
-		jvmc.generatedAnnotation = true;
+		jvmc.setGeneratedAnnotation(true);
 		
 		try
 		{
@@ -101,7 +102,7 @@ public class TestLzVM
 		{
 			throw new RuntimeException(e);
 		}
-		jvmc.generatedAnnotation = false;
+		jvmc.setGeneratedAnnotation(false);
 		
 		LzFactory fac = LzJVM.compile(jvmc, genProg, 1, new LzJVM.LzClassLoader());
 		System.out.println(fac);
@@ -165,9 +166,9 @@ public class TestLzVM
 		System.out.println("INSTANT (0 ns): " + instantComputes + " / " + runs + " RUNS (" + ((instantComputes * 1000L / runs) / 10D) + "%)");
 	}
 	
-	private static LzVMVariableStore createVarStore()
+	private static SimpleLzVariableStore createVarStore()
 	{
-		LzVMVariableStore vm = new LzVMVariableStore();
+		SimpleLzVariableStore vm = new SimpleLzVariableStore();
 		
 		vm.registerCall(MATH_SIN,
 				moArgs -> Math.sin(Math.toRadians((double) moArgs[0]))

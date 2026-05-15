@@ -607,9 +607,9 @@ public class TestMath
 		// Sine (in degrees) of value
 		runTrue("math.sin(0) == 0");
 		runTrue("math.sin(90) == 1");
-		runTrue("math.sin(180) >= 0 && math.sin(180) < 0.0001");
+		runTrue("math.sin(180) == 0");
 		runTrue("math.sin(270) == -1");
-		runTrue("math.sin(360) > -0.0001 && math.sin(360) <= 0");
+		runTrue("math.sin(360) == 0");
 	}
 	
 	@Test

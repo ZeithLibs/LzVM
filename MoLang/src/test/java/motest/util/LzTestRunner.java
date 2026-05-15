@@ -1,10 +1,11 @@
 package motest.util;
 
-import dev.zeith.lzvm.*;
+import dev.zeith.lzvm.LzVariableStore;
 import dev.zeith.lzvm.jvm.*;
 import dev.zeith.lzvm.molang.compiler.MoLangCompiler;
 import dev.zeith.lzvm.op.*;
 import dev.zeith.lzvm.program.*;
+import dev.zeith.lzvm.vm.LzVM;
 
 import java.util.*;
 
@@ -20,6 +21,8 @@ public class LzTestRunner
 	static
 	{
 		MLPP_COMPILER_UNOPT.optimize = false;
+		VM.setUseSineLookupTable(false);
+		JVM_COMPILER.setUseSineLookupTable(false);
 	}
 	
 	public static void runTrue(String expression)
@@ -51,15 +54,13 @@ public class LzTestRunner
 		programs[0] = MLPP_COMPILER.parseAndCompile(expression);
 		programs[1] = MLPP_COMPILER_UNOPT.parseAndCompile(expression);
 		
-		IClassDefiner def = new LzJVM.LzClassLoader();
-		
 		double[][] runValues = new double[2][2];
 		
 		for(int i = 0, len = programs.length; i < len; i++)
 		{
 			LzProgramBody prog = programs[i];
-			double jvm = LzJVM.compile(JVM_COMPILER, prog, 0, def).instantiate(vars).get();
-			double interp = VM.interpret(vars, new LzProgram("test", prog));
+			double jvm = JVM_COMPILER.expression(prog).instantiate(vars).get();
+			double interp = VM.expression(prog).instantiate(vars).get();
 			runValues[i][0] = jvm;
 			runValues[i][1] = interp;
 		}

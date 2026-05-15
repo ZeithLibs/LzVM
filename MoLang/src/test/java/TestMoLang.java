@@ -1,4 +1,3 @@
-import dev.zeith.lzvm.*;
 import dev.zeith.lzvm.api.*;
 import dev.zeith.lzvm.jvm.*;
 import dev.zeith.lzvm.molang.compiler.MoLangCompiler;
@@ -6,6 +5,7 @@ import dev.zeith.lzvm.molang.expression.MLExpression;
 import dev.zeith.lzvm.op.LzVarOp;
 import dev.zeith.lzvm.program.*;
 import dev.zeith.lzvm.program.io.*;
+import dev.zeith.lzvm.vm.*;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -36,7 +36,7 @@ public class TestMoLang
 //		tokenizer.init(expression);
 //		while(tokenizer.hasNext()) System.out.println("TOKEN: " + tokenizer.next());
 		
-		LzVMVariableStore vars = new LzVMVariableStore();
+		SimpleLzVariableStore vars = new SimpleLzVariableStore();
 		double[] time = new double[1];
 		vars.registerVar("query.anim_time", LzVarOp.readOnly(() -> time[0]));
 		
@@ -48,7 +48,7 @@ public class TestMoLang
 		LzProgramBody body = compiledProgram;
 		
 		LzJvmCompiler jvmc = new LzJvmCompiler();
-		jvmc.generatedAnnotation = false;
+		jvmc.setGeneratedAnnotation(false);
 		
 		Path run = Paths.get("run");
 		
@@ -81,7 +81,7 @@ public class TestMoLang
 		{
 			throw new RuntimeException(e);
 		}
-		jvmc.generatedAnnotation = false;
+		jvmc.setGeneratedAnnotation(false);
 		
 		LzFactory fact = compiler.parseFactory(jvmc, expression, new LzJVM.LzClassLoader());
 		LzExpression expr = fact.instantiate(vars);

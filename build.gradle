@@ -1,5 +1,6 @@
 plugins {
     id 'java'
+    id 'maven-publish'
 }
 
 group = 'dev.zeith.lzvm'
@@ -41,4 +42,33 @@ dependencies {
     implementation("org.ow2.asm:asm:$owasm")
     implementation("org.ow2.asm:asm-tree:$owasm")
     implementation("org.jetbrains:annotations:$jbAnnotation")
+}
+
+tasks.register('sourcesJar', Jar) {
+    dependsOn classes
+    archiveClassifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            groupId = lzVmBaseGroup
+            artifactId = "LzVM"
+
+            from components.java
+            artifact tasks.sourcesJar
+
+            pom {
+                name = 'LzVM'
+                description = 'Bare-bone runtime for LzVM expressions.'
+            }
+        }
+    }
+
+    repositories {
+        maven {
+            url System.env.MAVEN_URL
+        }
+    }
 }

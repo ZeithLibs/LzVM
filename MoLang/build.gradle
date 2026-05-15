@@ -1,5 +1,6 @@
 plugins {
     id 'java'
+    id 'maven-publish'
 }
 
 group = 'dev.zeith.lzvm.molang'
@@ -21,4 +22,33 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+tasks.register('sourcesJar', Jar) {
+    dependsOn classes
+    archiveClassifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            groupId = lzVmBaseGroup
+            artifactId = 'MoLang'
+
+            from components.java
+            artifact tasks.sourcesJar
+
+            pom {
+                name = 'MoLang'
+                description = 'MoLang support for LzVM.'
+            }
+        }
+    }
+
+    repositories {
+        maven {
+            url System.env.MAVEN_URL
+        }
+    }
 }
