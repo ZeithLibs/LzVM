@@ -4,7 +4,7 @@ plugins {
 }
 
 group = 'dev.zeith.lzvm.molang'
-version = '1.0.0'
+version = lzVmVersion
 
 repositories {
     mavenCentral()
