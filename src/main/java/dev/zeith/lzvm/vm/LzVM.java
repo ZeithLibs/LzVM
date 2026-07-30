@@ -1,7 +1,7 @@
 package dev.zeith.lzvm.vm;
 
 import dev.zeith.lzvm.LzVariableStore;
-import dev.zeith.lzvm.api.JzRuntimeProvider;
+import dev.zeith.lzvm.api.LzRuntimeProvider;
 import dev.zeith.lzvm.exception.*;
 import dev.zeith.lzvm.jvm.*;
 import dev.zeith.lzvm.op.*;
@@ -14,7 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 public class LzVM
-		implements JzRuntimeProvider<LzVM>
+		implements LzRuntimeProvider<LzVM>
 {
 	protected final JClassLoader loader;
 	protected final Map<String, Map<LzCallInsn, Optional<JMethod>>> jvmCache = new ConcurrentHashMap<>();

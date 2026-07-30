@@ -1,6 +1,6 @@
 package dev.zeith.lzvm.jvm;
 
-import dev.zeith.lzvm.api.JzRuntimeProvider;
+import dev.zeith.lzvm.api.LzRuntimeProvider;
 import dev.zeith.lzvm.exception.*;
 import dev.zeith.lzvm.op.LzOpcodes;
 import dev.zeith.lzvm.program.*;
@@ -15,7 +15,7 @@ import java.util.function.*;
 import static org.objectweb.asm.Opcodes.*;
 
 public class LzJvmCompiler
-		implements JzRuntimeProvider<LzJvmCompiler>
+		implements LzRuntimeProvider<LzJvmCompiler>
 {
 	public static final String LzExpression = dev.zeith.lzvm.jvm.LzExpression.class.getName().replace('.', '/');
 	public static final String LzVariableStore = dev.zeith.lzvm.LzVariableStore.class.getName().replace('.', '/');

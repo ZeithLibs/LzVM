@@ -3,7 +3,7 @@ package dev.zeith.lzvm.api;
 import dev.zeith.lzvm.jvm.*;
 import dev.zeith.lzvm.program.LzProgramBody;
 
-public interface JzRuntimeProvider<T extends JzRuntimeProvider<T>>
+public interface LzRuntimeProvider<T extends LzRuntimeProvider<T>>
 {
 	LzFactory expression(LzProgramBody body);
 	
