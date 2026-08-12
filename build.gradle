@@ -1,18 +1,28 @@
 plugins {
     id 'java'
-    id 'maven-publish'
+    id "com.vanniktech.maven.publish" version "0.37.0"
 }
 
 group = 'dev.zeith.lzvm'
 version = lzVmVersion
+description = 'Bare-bone runtime for LzVM expressions.'
 
 subprojects {
     apply plugin: 'java'
+    apply plugin: 'com.vanniktech.maven.publish'
+
+    group = rootProject.group
+    version = rootProject.version
 
     java {
+        withSourcesJar()
         toolchain {
             languageVersion = JavaLanguageVersion.of(javaVersion)
         }
+    }
+
+    repositories {
+        mavenCentral()
     }
 
     dependencies {
@@ -23,6 +33,7 @@ subprojects {
 }
 
 java {
+    withSourcesJar()
     toolchain {
         languageVersion = JavaLanguageVersion.of(javaVersion)
     }
@@ -30,9 +41,6 @@ java {
 
 repositories {
     mavenCentral()
-//    maven {
-//        url = "https://maven.zeith.org"
-//    }
 }
 
 dependencies {
@@ -44,31 +52,36 @@ dependencies {
     implementation("org.jetbrains:annotations:$jbAnnotation")
 }
 
-tasks.register('sourcesJar', Jar) {
-    dependsOn classes
-    archiveClassifier = 'sources'
-    from sourceSets.main.allSource
-}
+mavenPublishing {
+    publishToMavenCentral()
 
-publishing {
-    publications {
-        maven(MavenPublication) {
-            groupId = lzVmBaseGroup
-            artifactId = "LzVM"
+    signAllPublications()
 
-            from components.java
-            artifact tasks.sourcesJar
+    coordinates(group, 'LzVM', version)
 
-            pom {
-                name = 'LzVM'
-                description = 'Bare-bone runtime for LzVM expressions.'
+    pom {
+        name = 'LzVM'
+        description = 'Bare-bone runtime for LzVM expressions.'
+        url = 'https://github.com/ZeithLibs/LzVM'
+
+        licenses {
+            license {
+                name = 'Zeith Standard Free License'
+                url = 'https://zeith.dev/license/zsfl'
             }
         }
-    }
 
-    repositories {
-        maven {
-            url System.env.MAVEN_URL
+        scm {
+            connection = 'scm:git:git://github.com/ZeithLibs/LzVM.git'
+            developerConnection = 'scm:git:ssh://git@github.com/ZeithLibs/LzVM.git'
+            url = 'https://github.com/ZeithLibs/LzVM'
+        }
+
+        developers {
+            developer {
+                id = 'zeith'
+                name = 'Zeith'
+            }
         }
     }
 }

@@ -8,7 +8,7 @@ public final class ParserConfig
 	/**
 	 * Whether a cache should be used to speed up executing MoLang.
 	 * The cache saves an AST for every parsed expression.
-	 * This allows us to skip the tokenization & parsing step before executing known Molang expressions
+	 * This allows us to skip the tokenization and parsing step before executing known Molang expressions
 	 */
 	@Builder.Default
 	public final boolean useCache = true;
@@ -20,7 +20,7 @@ public final class ParserConfig
 	public final int maxCacheSize = 256;
 	
 	/**
-	 * The optimizer can drastically speed up parsing & executing MoLang.
+	 * The optimizer can drastically speed up parsing and executing MoLang.
 	 * It enables skipping of unreachable statements, pre-evaluating static expressions and skipping of statements with no effect when used together with the `useAggressiveStaticOptimizer` option
 	 */
 	@Builder.Default

@@ -20,15 +20,13 @@ We only ship "MoLang" module out-of-box.
 
 `gradle.properties`:
 ```properties
-lzvmVersion=1.0.0
+lzvmVersion=1.0.3
 ```
 
 `build.gradle`:
 ```groovy
 repositories {
-    maven {
-        url = "https://maven.zeith.org"
-    }
+    mavenCentral()
 }
 
 dependencies {

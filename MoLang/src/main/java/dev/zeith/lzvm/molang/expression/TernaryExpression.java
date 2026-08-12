@@ -40,7 +40,7 @@ public final class TernaryExpression
 		// Then perform jump if false
 		builder.addLoad(local).addJumpIfFalse(toFalse);
 		
-		// The "Hackery™️" below is used to avoid emitting anything onto the stack if the inner blocks don't emit anything.
+		// The "Hackery™" below is used to avoid emitting anything onto the stack if the inner blocks don't emit anything.
 		// This is super useful for breaks in loops, allowing for something like this
 		// 									(v.test <= 5 ?: break)		(v.test > 5 ? break)
 		// to generate cleaner bytecode without break turning into a zero variable that is never used.

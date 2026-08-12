@@ -1,14 +1,4 @@
-plugins {
-    id 'java'
-    id 'maven-publish'
-}
-
-group = 'dev.zeith.lzvm.molang'
-version = lzVmVersion
-
-repositories {
-    mavenCentral()
-}
+description = 'MoLang support for LzVM.'
 
 dependencies {
     implementation project(":")
@@ -24,31 +14,35 @@ tasks.named('test') {
     useJUnitPlatform()
 }
 
-tasks.register('sourcesJar', Jar) {
-    dependsOn classes
-    archiveClassifier = 'sources'
-    from sourceSets.main.allSource
-}
+mavenPublishing {
+    publishToMavenCentral()
 
-publishing {
-    publications {
-        maven(MavenPublication) {
-            groupId = lzVmBaseGroup
-            artifactId = 'MoLang'
+    signAllPublications()
+    coordinates(group, 'MoLang', version)
 
-            from components.java
-            artifact tasks.sourcesJar
+    pom {
+        name = 'MoLang'
+        description = 'MoLang support for LzVM.'
+        url = 'https://github.com/ZeithLibs/LzVM'
 
-            pom {
-                name = 'MoLang'
-                description = 'MoLang support for LzVM.'
+        licenses {
+            license {
+                name = 'Zeith Standard Free License'
+                url = 'https://zeith.dev/license/zsfl'
             }
         }
-    }
 
-    repositories {
-        maven {
-            url System.env.MAVEN_URL
+        scm {
+            connection = 'scm:git:git://github.com/ZeithLibs/LzVM.git'
+            developerConnection = 'scm:git:ssh://git@github.com/ZeithLibs/LzVM.git'
+            url = 'https://github.com/ZeithLibs/LzVM'
+        }
+
+        developers {
+            developer {
+                id = 'zeith'
+                name = 'Zeith'
+            }
         }
     }
 }
